@@ -1,0 +1,23 @@
+{
+  "name": "quiz-arena",
+  "version": "2.4.0",
+  "description": "Modern, interactive competitive quiz application built with HTML, Tailwind CSS, and React Native",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve -s . -l 3000",
+    "dev": "npx serve -s . -l 3000",
+    "preview": "start index.html"
+  },
+  "keywords": [
+    "quiz-arena",
+    "trivia",
+    "react-native",
+    "tailwind-css",
+    "html",
+    "multiplayer-quiz",
+    "gaming"
+  ],
+  "author": "Quiz Arena Gladiator",
+  "license": "MIT"
+}
+

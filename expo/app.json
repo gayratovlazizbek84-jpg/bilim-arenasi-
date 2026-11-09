@@ -1,0 +1,23 @@
+{
+  "name": "quiz-arena",
+  "slug": "quiz-arena",
+  "version": "1.0.0",
+  "orientation": "portrait",
+  "icon": "./assets/icon.png",
+  "userInterfaceStyle": "dark",
+  "splash": {
+    "backgroundColor": "#070913"
+  },
+  "assetBundlePatterns": [
+    "**/*"
+  ],
+  "ios": {
+    "supportsTablet": true
+  },
+  "android": {
+    "adaptiveIcon": {
+      "backgroundColor": "#070913"
+    }
+  }
+}
+

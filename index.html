@@ -1,0 +1,3580 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>QUIZ ARENA — Competitive Knowledge Battleground</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            arena: {
+              bg: '#070913',
+              card: '#0d1322',
+              border: '#1b253b',
+              glow: '#06b6d4',
+              purple: '#8b5cf6',
+              cyan: '#06b6d4',
+              pink: '#ec4899',
+              gold: '#f59e0b'
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.25s ease-out forwards',
+            'scale-up': 'scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'pulse-glow': 'pulseGlow 2s infinite',
+            'marquee': 'marquee 25s linear infinite'
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(6px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' }
+            },
+            scaleUp: {
+              '0%': { opacity: '0', transform: 'scale(0.95)' },
+              '100%': { opacity: '1', transform: 'scale(1)' }
+            },
+            pulseGlow: {
+              '0%, 100%': { boxShadow: '0 0 15px rgba(6, 182, 212, 0.3)' },
+              '50%': { boxShadow: '0 0 25px rgba(139, 92, 246, 0.5)' }
+            },
+            marquee: {
+              '0%': { transform: 'translateX(100%)' },
+              '100%': { transform: 'translateX(-100%)' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- React 18 & ReactDOM & Babel Standalone -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #070913;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #070913;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="bg-[#070913] text-slate-100 min-h-screen">
+  <div id="root"></div>
+
+  <!-- Native HTML5 Confetti Canvas -->
+  <canvas id="arena-confetti" class="fixed inset-0 pointer-events-none z-50 w-full h-full" style="display:none;"></canvas>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // ==========================================
+    // 1. NATIVE CANVAS CELEBRATION PARTICLES
+    // ==========================================
+    function triggerConfetti() {
+      const canvas = document.getElementById('arena-confetti');
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvas.style.display = 'block';
+
+      const ctx = canvas.getContext('2d');
+      const colors = ['#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899', '#10b981', '#ffffff'];
+      const particles = [];
+
+      for (let i = 0; i < 90; i++) {
+        particles.push({
+          x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+          y: canvas.height / 2 - 50,
+          vx: (Math.random() - 0.5) * 16,
+          vy: (Math.random() - 1) * 18 - 4,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          vRot: (Math.random() - 0.5) * 10,
+          opacity: 1
+        });
+      }
+
+      let frame = 0;
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = 0;
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.45; // gravity
+          p.rotation += p.vRot;
+          p.opacity -= 0.012;
+
+          if (p.opacity > 0) {
+            active++;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.globalAlpha = Math.max(0, p.opacity);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.4);
+            ctx.restore();
+          }
+        });
+
+        frame++;
+        if (active > 0 && frame < 150) {
+          requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    // ==========================================
+    // 2. SOUND EFFECTS (Web Audio API Synthesizer)
+    // ==========================================
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx && typeof window !== 'undefined') {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      setEnabled(val) { this.enabled = !!val; }
+      playClick() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(850, this.ctx.currentTime + 0.04);
+          gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.04);
+        } catch (e) {}
+      }
+      playCorrect() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + i * 0.05);
+            gain.gain.setValueAtTime(0.12, now + i * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.22);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + i * 0.05);
+            osc.stop(now + i * 0.05 + 0.22);
+          });
+        } catch (e) {}
+      }
+      playWrong() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.linearRampToValueAtTime(130, now + 0.22);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        } catch (e) {}
+      }
+      playTick() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.03);
+        } catch (e) {}
+      }
+      playLevelUp() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          [440, 554.37, 659.25, 880, 1108.73].forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+            gain.gain.setValueAtTime(0.08, now + idx * 0.07);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.07);
+            osc.stop(now + idx * 0.07 + 0.25);
+          });
+        } catch (e) {}
+      }
+      playVictory() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((f, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(f, now + i * 0.1);
+            gain.gain.setValueAtTime(0.12, now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.35);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.35);
+          });
+        } catch (e) {}
+      }
+      playPowerUp() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } catch (e) {}
+      }
+    }
+    const sound = new SoundFX();
+
+    // ==========================================
+    // 3. REACT NATIVE COMPONENT PRIMITIVES
+    // ==========================================
+    const View = ({ style = {}, className = '', children, onClick, ...props }) => (
+      <div style={style} className={`box-border flex flex-col ${className}`} onClick={onClick} {...props}>
+        {children}
+      </div>
+    );
+
+    const Text = ({ style = {}, className = '', children, numberOfLines, ...props }) => (
+      <span style={style} className={`text-slate-100 ${numberOfLines ? `line-clamp-${numberOfLines}` : ''} ${className}`} {...props}>
+        {children}
+      </span>
+    );
+
+    const TouchableOpacity = ({ onPress, disabled = false, activeOpacity = 0.7, style = {}, className = '', children, ...props }) => {
+      const [isPressed, setIsPressed] = useState(false);
+      return (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={disabled ? undefined : onPress}
+          onMouseDown={() => setIsPressed(true)}
+          onMouseUp={() => setIsPressed(false)}
+          onMouseLeave={() => setIsPressed(false)}
+          onTouchStart={() => setIsPressed(true)}
+          onTouchEnd={() => setIsPressed(false)}
+          style={{
+            ...style,
+            opacity: disabled ? 0.5 : isPressed ? activeOpacity : 1,
+            transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+            cursor: disabled ? 'not-allowed' : 'pointer'
+          }}
+          className={`outline-none focus:outline-none select-none text-left border-none bg-transparent p-0 m-0 ${className}`}
+          {...props}
+        >
+          {children}
+        </button>
+      );
+    };
+
+    const Pressable = TouchableOpacity;
+
+    const ScrollView = ({ horizontal = false, style = {}, className = '', children, ...props }) => (
+      <div style={style} className={`${horizontal ? 'overflow-x-auto overflow-y-hidden flex-row' : 'overflow-y-auto overflow-x-hidden flex-col'} flex ${className}`} {...props}>
+        {children}
+      </div>
+    );
+
+    const TextInput = ({ value, onChangeText, placeholder, secureTextEntry = false, style = {}, className = '', disabled = false, ...props }) => (
+      <input
+        type={secureTextEntry ? 'password' : 'text'}
+        value={value}
+        onChange={(e) => onChangeText && onChangeText(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        style={style}
+        className={`bg-slate-900/90 text-white placeholder-slate-400 border border-slate-700/80 rounded-xl px-4 py-3 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all ${className}`}
+        {...props}
+      />
+    );
+
+    const SafeAreaView = ({ style = {}, className = '', children, ...props }) => (
+      <div style={style} className={`min-h-screen w-full flex flex-col bg-[#070913] text-slate-100 ${className}`} {...props}>
+        {children}
+      </div>
+    );
+
+    const Modal = ({ visible = false, onRequestClose, children }) => {
+      if (!visible) return null;
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md animate-scale-up">
+            {children}
+          </div>
+        </div>
+      );
+    };
+
+    const ActivityIndicator = ({ size = 'small', color = '#06b6d4', className = '' }) => {
+      const pixelSize = size === 'large' ? 'w-10 h-10' : 'w-5 h-5';
+      return (
+        <div className={`inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent ${pixelSize} ${className}`} style={{ borderColor: color, borderRightColor: 'transparent' }} role="status">
+          <span className="sr-only">Loading...</span>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 4. CATEGORIES & COMPREHENSIVE QUESTION DATA
+    // ==========================================
+    const CATEGORIES = [
+      { id: 'general', name: 'General Knowledge', icon: '💡', description: 'Test your awareness of worldly facts and trivia.', gradient: 'from-amber-500 via-orange-600 to-red-500', color: '#f59e0b' },
+      { id: 'science', name: 'Science', icon: '🔬', description: 'Physics, chemistry, biology, and celestial marvels.', gradient: 'from-emerald-400 via-teal-500 to-cyan-600', color: '#10b981' },
+      { id: 'mathematics', name: 'Mathematics', icon: '📐', description: 'Mental arithmetic, logic, geometry, and equations.', gradient: 'from-blue-500 via-indigo-600 to-violet-700', color: '#3b82f6' },
+      { id: 'history', name: 'History', icon: '🏛️', description: 'Ancient empires, world wars, and iconic figures.', gradient: 'from-yellow-600 via-amber-700 to-stone-800', color: '#d97706' },
+      { id: 'geography', name: 'Geography', icon: '🌍', description: 'Capitals, continents, oceans, and natural wonders.', gradient: 'from-teal-400 via-cyan-500 to-blue-600', color: '#06b6d4' },
+      { id: 'technology', name: 'Technology', icon: '💻', description: 'Computers, AI, algorithms, gadgets, and the internet.', gradient: 'from-cyan-400 via-blue-500 to-purple-600', color: '#8b5cf6' },
+      { id: 'sports', name: 'Sports', icon: '⚽', description: 'Athletes, champions, football, basketball, and Olympics.', gradient: 'from-rose-500 via-red-600 to-orange-500', color: '#f43f5e' },
+      { id: 'english', name: 'English', icon: '📚', description: 'Grammar, vocabulary, idioms, and literature.', gradient: 'from-purple-500 via-fuchsia-600 to-pink-500', color: '#d946ef' }
+    ];
+
+    const QUESTIONS_BANK = {
+  general: {
+    easy: [
+      {
+        question: {
+          uz: 'Quyosh tizimidagi qaysi sayyora "Qizil sayyora" deb ataladi?',
+          ru: 'Какая планета Солнечной системы известна как «Красная планета»?',
+          en: 'Which planet in our solar system is known as the "Red Planet"?'
+        },
+        options: {
+          uz: ['Venera', 'Mars', 'Yupiter', 'Saturn'],
+          ru: ['Венера', 'Марс', 'Юпитер', 'Сатурн'],
+          en: ['Venus', 'Mars', 'Jupiter', 'Saturn']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Rim mifologiyasidagi urush xudosi nomi bilan atalgan.',
+          ru: 'Названа в честь римского бога войны.',
+          en: 'Named after the Roman god of war.'
+        }
+      },
+      {
+        question: {
+          uz: 'Kabisa yilida necha kun bor?',
+          ru: 'Сколько дней насчитывает високосный год?',
+          en: 'How many days are there in a standard leap year?'
+        },
+        options: {
+          uz: ['364 kun', '365 kun', '366 kun', '367 kun'],
+          ru: ['364 дня', '365 дней', '366 дней', '367 дней'],
+          en: ['364 days', '365 days', '366 days', '367 days']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: "Oddiy yildan 1 kun ko'proq (29-fevral qo'shiladi).",
+          ru: 'На 1 день больше обычного года (29 февраля).',
+          en: 'One day more than a typical year (adds Feb 29).'
+        }
+      },
+      {
+        question: {
+          uz: 'Yer yuzidagi eng katta okean qaysi?',
+          ru: 'Какой океан является самым крупным на Земле?',
+          en: 'What is the largest ocean on planet Earth?'
+        },
+        options: {
+          uz: ['Atlantika okeani', 'Hind okeani', 'Tinch okeani', 'Shimoliy Muz okeani'],
+          ru: ['Атлантический', 'Индийский', 'Тихий океан', 'Северный Ледовитый'],
+          en: ['Atlantic Ocean', 'Indian Ocean', 'Pacific Ocean', 'Arctic Ocean']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: "Nomi tinchlik ma'nosini beradi.",
+          ru: 'Название связано со словом «тишина».',
+          en: 'Its name signifies calm and peace.'
+        }
+      }
+    ],
+    medium: [
+      {
+        question: {
+          uz: 'AQSHga "Ozodlik haykali"ni qaysi davlat sovg\'a qilgan?',
+          ru: 'Какая страна подарила США «Статую Свободы»?',
+          en: 'Which country gifted the Statue of Liberty to the United States?'
+        },
+        options: {
+          uz: ['Buyuk Britaniya', 'Fransiya', 'Ispaniya', 'Germaniya'],
+          ru: ['Великобритания', 'Франция', 'Испания', 'Германия'],
+          en: ['United Kingdom', 'France', 'Spain', 'Germany']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Eyfel minorasi joylashgan mamlakat.',
+          ru: 'Родина Эйфелевой башни.',
+          en: 'Home of the Eiffel Tower.'
+        }
+      },
+      {
+        question: {
+          uz: 'Yaponiyaning rasmiy pul birligi nima?',
+          ru: 'Какая официальная валюта Японии?',
+          en: 'What is the primary official currency of Japan?'
+        },
+        options: {
+          uz: ['Iena (Yen)', 'Vona', 'Yuan', 'Dollar'],
+          ru: ['Иена', 'Вона', 'Юань', 'Доллар'],
+          en: ['Yen', 'Won', 'Yuan', 'Dollar']
+        },
+        correctIndex: 0,
+        hint: {
+          uz: 'Belgisi ¥ shaklida yoziladi.',
+          ru: 'Обозначается символом ¥.',
+          en: 'Represented by symbol ¥.'
+        }
+      }
+    ],
+    hard: [
+      {
+        question: {
+          uz: 'Dunyoda qaysi davlatning bayrog\'i to\'rtburchak shaklda emas?',
+          ru: 'Флаг какого государства в мире не является четырехугольным?',
+          en: 'Which is the only country in the world with a non-rectangular national flag?'
+        },
+        options: {
+          uz: ['Shveysariya', 'Vatikan', 'Nepal', 'Butan'],
+          ru: ['Швейцария', 'Ватикан', 'Непал', 'Бутан'],
+          en: ['Switzerland', 'Vatican City', 'Nepal', 'Bhutan']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: "Himolay tog'larida joylashgan davlat.",
+          ru: 'Страна в высоких Гималаях.',
+          en: 'Located in high Himalayas.'
+        }
+      }
+    ]
+  },
+  science: {
+    easy: [
+      {
+        question: {
+          uz: "O'simliklar fotosintez vaqtida qaysi gazni yutadi?",
+          ru: 'Какой газ растения поглощают из воздуха при фотосинтезе?',
+          en: 'What gas do plants absorb during photosynthesis?'
+        },
+        options: {
+          uz: ['Kislorod', 'Karbonat angidrid (CO2)', 'Azot', 'Geliy'],
+          ru: ['Кислород', 'Углекислый газ (CO2)', 'Азот', 'Гелий'],
+          en: ['Oxygen', 'Carbon Dioxide (CO2)', 'Nitrogen', 'Helium']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: "Insonlar nafas chiqarganda hosil bo'ladi.",
+          ru: 'Выделяется живыми организмами при дыхании.',
+          en: 'Gas exhaled by animals.'
+        }
+      },
+      {
+        question: {
+          uz: 'Toza suvning kimyoviy formulasi qanday?',
+          ru: 'Какова химическая формула чистой воды?',
+          en: 'What is the chemical formula for pure water?'
+        },
+        options: {
+          uz: ['CO2', 'NaCl', 'H2O', 'CH4'],
+          ru: ['CO2', 'NaCl', 'H2O', 'CH4'],
+          en: ['CO2', 'NaCl', 'H2O', 'CH4']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: '2 ta vodorod va 1 ta kislorod atomi.',
+          ru: '2 атома водорода и 1 атом кислорода.',
+          en: 'Two Hydrogen and one Oxygen.'
+        }
+      }
+    ],
+    medium: [
+      {
+        question: {
+          uz: 'Tirik hujayraning asosiy energiya stansiyasi qaysi organoid?',
+          ru: 'Какой органоид называют энергетической станцией клетки?',
+          en: 'What is the powerhouse organelle of a living cell?'
+        },
+        options: {
+          uz: ['Yadro', 'Ribosoma', 'Mitoxondriya', 'Lizosoma'],
+          ru: ['Ядро', 'Рибосома', 'Митохондрия', 'Лизосома'],
+          en: ['Nucleus', 'Ribosome', 'Mitochondria', 'Lysosome']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: 'ATF molekulalarini sintez qiladi.',
+          ru: 'Синтезирует молекулы АТФ.',
+          en: 'Synthesizes ATP molecules.'
+        }
+      }
+    ],
+    hard: [
+      {
+        question: {
+          uz: 'Volfram kimyoviy elementining davriy jadvaldagi belgisi qanday?',
+          ru: 'Каким символом обозначается химический элемент Вольфрам?',
+          en: 'Which chemical element has the atomic symbol "W"?'
+        },
+        options: {
+          uz: ['W', 'V', 'Wo', 'Tm'],
+          ru: ['W', 'V', 'Wo', 'Tm'],
+          en: ['W', 'V', 'Wo', 'Tm']
+        },
+        correctIndex: 0,
+        hint: {
+          uz: 'Nemischa "Wolfram" so\'zidan olingan.',
+          ru: 'От немецкого названия «Wolfram».',
+          en: 'Derived from German name Wolfram.'
+        }
+      }
+    ]
+  },
+  mathematics: {
+    easy: [
+      {
+        question: {
+          uz: "12 × 12 ko'paytmaning javobi nechaga teng?",
+          ru: 'Чему равно произведение 12 × 12?',
+          en: 'What is the result of 12 × 12?'
+        },
+        options: {
+          uz: ['124', '132', '144', '156'],
+          ru: ['124', '132', '144', '156'],
+          en: ['124', '132', '144', '156']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: '12 ning kvadrati.',
+          ru: 'Квадрат числа 12.',
+          en: 'Square of 12.'
+        }
+      },
+      {
+        question: {
+          uz: "Uchburchakning ichki burchaklari yig'indisi necha gradus?",
+          ru: 'Чему равна сумма внутренних углов любого треугольника?',
+          en: 'What is the sum of interior angles in a triangle?'
+        },
+        options: {
+          uz: ['90°', '180°', '270°', '360°'],
+          ru: ['90°', '180°', '270°', '360°'],
+          en: ['90°', '180°', '270°', '360°']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Yoyiq burchakka teng.',
+          ru: 'Равна развернутому углу.',
+          en: 'Equal to a straight line.'
+        }
+      }
+    ],
+    medium: [
+      {
+        question: {
+          uz: 'Yagona juft tub son qaysi?',
+          ru: 'Какое число является единственным четным простым числом?',
+          en: 'What is the only even prime number?'
+        },
+        options: {
+          uz: ['0', '2', '4', '6'],
+          ru: ['0', '2', '4', '6'],
+          en: ['0', '2', '4', '6']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Eng kichik tub son ham aynan shu.',
+          ru: 'Это также наименьшее простое число.',
+          en: 'Also the smallest prime number.'
+        }
+      }
+    ],
+    hard: [
+      {
+        question: {
+          uz: "Pifagor teoremasi to'g'ri burchakli uchburchak uchun qaysi formulada ifodalanadi?",
+          ru: 'Какая формула выражает теорему Пифагора для прямоугольного треугольника?',
+          en: 'What is the formula for the Pythagorean theorem?'
+        },
+        options: {
+          uz: ['a + b = c', 'a² + b² = c²', 'a² - b² = c²', '2a + 2b = c'],
+          ru: ['a + b = c', 'a² + b² = c²', 'a² - b² = c²', '2a + 2b = c'],
+          en: ['a + b = c', 'a² + b² = c²', 'a² - b² = c²', '2a + 2b = c']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: "Katetlar kvadratlari yig'indisi gipotenuza kvadratiga teng.",
+          ru: 'Квадрат гипотенузы равен сумме квадратов катетов.',
+          en: 'Sum of squares of legs equals hypotenuse squared.'
+        }
+      }
+    ]
+  },
+  history: {
+    easy: [
+      {
+        question: {
+          uz: 'Sohibqiron Amir Temur qaysi yilda tavallud topgan?',
+          ru: 'В каком году родился великий полководец Амир Темур?',
+          en: 'In which year was Amir Timur born?'
+        },
+        options: {
+          uz: ['1336-yil', '1340-yil', '1355-yil', '1370-yil'],
+          ru: ['1336 год', '1340 год', '1355 год', '1370 год'],
+          en: ['1336', '1340', '1355', '1370']
+        },
+        correctIndex: 0,
+        hint: {
+          uz: "Kesh (Shahrisabz) yaqinidagi Xo'ja Ilg'or qishlog'ida.",
+          ru: 'В селении Ходжа-Ильгар близ Кеша.',
+          en: 'Born near Kesh (Shahrisabz).'
+        }
+      }
+    ],
+    medium: [
+      {
+        question: {
+          uz: 'Qadimgi Misrning eng katta piramidasi qaysi?',
+          ru: 'Какая самая большая пирамида в Египте?',
+          en: 'What is the largest pyramid in ancient Egypt?'
+        },
+        options: {
+          uz: ['Xafra', 'Xufu (Xeops)', 'Mikerin', 'Djoser'],
+          ru: ['Хафра', 'Хуфу (Хеопс)', 'Микерин', 'Джосер'],
+          en: ['Khafre', 'Khufu (Cheops)', 'Menkaure', 'Djoser']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Giza vodiysidagi eng baland mo\'jiza.',
+          ru: 'Самая высокая пирамида в Гизе.',
+          en: 'Tallest wonder in Giza.'
+        }
+      }
+    ],
+    hard: [
+      {
+        question: {
+          uz: "Birinchi jahon urushi qaysi yillarda bo'lib o'tgan?",
+          ru: 'В каких годах проходила Первая мировая война?',
+          en: 'Between which years did World War I take place?'
+        },
+        options: {
+          uz: ['1914 - 1918', '1912 - 1916', '1939 - 1945', '1905 - 1910'],
+          ru: ['1914 - 1918', '1912 - 1916', '1939 - 1945', '1905 - 1910'],
+          en: ['1914 - 1918', '1912 - 1916', '1939 - 1945', '1905 - 1910']
+        },
+        correctIndex: 0,
+        hint: {
+          uz: '1914-yil Sarayevodagi suiqasddan so\'ng boshlangan.',
+          ru: 'Началась после событий в Сараево в 1914 году.',
+          en: 'Sparked after assassination in Sarajevo.'
+        }
+      }
+    ]
+  },
+  geography: {
+    easy: [
+      {
+        question: {
+          uz: "O'zbekiston Respublikasining poytaxti qaysi shahar?",
+          ru: 'Какой город является столицей Узбекистана?',
+          en: 'What is the capital city of Uzbekistan?'
+        },
+        options: {
+          uz: ['Samarqand', 'Buxoro', 'Toshkent', 'Namangan'],
+          ru: ['Самарканд', 'Бухара', 'Ташкент', 'Наманган'],
+          en: ['Samarkand', 'Bukhara', 'Tashkent', 'Namangan']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: 'Markaziy Osiyoning eng yirik megapolisi.',
+          ru: 'Крупнейший мегаполис Центральной Азии.',
+          en: 'Largest metropolis in Central Asia.'
+        }
+      }
+    ],
+    medium: [
+      {
+        question: {
+          uz: "Dunyoning eng baland cho'qqisi - Everest qaysi tog' tizmasida joylashgan?",
+          ru: 'В какой горной системе находится высочайшая вершина мира — Эверест?',
+          en: 'In which mountain range is Mount Everest located?'
+        },
+        options: {
+          uz: ["Alp tog'lari", "And tog'lari", "Himolay tog'lari", 'Kavkaz'],
+          ru: ['Альпы', 'Анды', 'Гималаи', 'Кавказ'],
+          en: ['Alps', 'Andes', 'Himalayas', 'Caucasus']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: "Osiyodagi eng buyuk qorli tog'lar.",
+          ru: 'Величайшая горная система Азии.',
+          en: 'The highest range in Asia.'
+        }
+      }
+    ],
+    hard: [
+      {
+        question: {
+          uz: 'Dunyoning eng uzun daryosi qaysi?',
+          ru: 'Какая река считается самой длинной в мире?',
+          en: 'What is traditionally considered the longest river in the world?'
+        },
+        options: {
+          uz: ['Amazonka', 'Nil', 'Yantszi', 'Missisipi'],
+          ru: ['Амазонка', 'Нил', 'Янцзы', 'Миссисипи'],
+          en: ['Amazon', 'Nile', 'Yangtze', 'Mississippi']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: "Afrikadan oqib o'tuvchi buyuk daryo.",
+          ru: 'Великая река африканского континента.',
+          en: 'Flows through northeastern Africa.'
+        }
+      }
+    ]
+  },
+  technology: {
+    easy: [
+      {
+        question: {
+          uz: 'Texnologiyada "AI" qisqartmasi nimani anglatadi?',
+          ru: 'Что означает сокращение «AI» (ИИ)?',
+          en: 'What does the acronym "AI" stand for?'
+        },
+        options: {
+          uz: ['Automated Interface', "Artificial Intelligence (Sun'iy intellekt)", 'Active Internet', 'Advanced Info'],
+          ru: ['Automated Interface', 'Artificial Intelligence (Искусственный Интеллект)', 'Active Internet', 'Advanced Info'],
+          en: ['Automated Interface', 'Artificial Intelligence', 'Active Internet', 'Advanced Info']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Mashinalarning insondek fikrlash qobiliyati.',
+          ru: 'Способность машин мыслить и учиться.',
+          en: 'Machine simulation of human cognition.'
+        }
+      }
+    ],
+    medium: [
+      {
+        question: {
+          uz: 'Web-sahifalar yaratishdagi HTML qisqartmasi qanday kengaytiriladi?',
+          ru: 'Как расшифровывается веб-аббревиатура HTML?',
+          en: 'What does HTML stand for in web development?'
+        },
+        options: {
+          uz: ['HyperText Markup Language', 'High Tech Modern Language', 'Hyperlink Test Machine', 'Home Tool Markup Level'],
+          ru: ['HyperText Markup Language', 'High Tech Modern Language', 'Hyperlink Test Machine', 'Home Tool Markup Level'],
+          en: ['HyperText Markup Language', 'High Tech Modern Language', 'Hyperlink Test Machine', 'Home Tool Markup Level']
+        },
+        correctIndex: 0,
+        hint: {
+          uz: 'Gipermatnli belgilash tili.',
+          ru: 'Язык гипертекстовой разметки.',
+          en: 'Hypertext markup language for websites.'
+        }
+      }
+    ],
+    hard: [
+      {
+        question: {
+          uz: "Git tizimida yangi o'zgarishlarni qayd etish (commit) buyrug'i qaysi?",
+          ru: 'Какая команда фиксирует изменения в системе Git?',
+          en: 'Which command records staged snapshots in Git?'
+        },
+        options: {
+          uz: ['git push', 'git commit', 'git checkout', 'git pull'],
+          ru: ['git push', 'git commit', 'git checkout', 'git pull'],
+          en: ['git push', 'git commit', 'git checkout', 'git pull']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Xabar bilan saqlash (commit -m "...")',
+          ru: 'Сохранение версии с сообщением (-m)',
+          en: 'Includes commit message.'
+        }
+      }
+    ]
+  },
+  sports: {
+    easy: [
+      {
+        question: {
+          uz: "Futbolda bir jamoa safida maydonda necha nafar o'yinchi bo'ladi?",
+          ru: 'Сколько игроков одной команды находится на поле в футболе?',
+          en: 'How many players per team are on the field in a soccer match?'
+        },
+        options: {
+          uz: ['9 nafar', '10 nafar', '11 nafar', '12 nafar'],
+          ru: ['9 игроков', '10 игроков', '11 игроков', '12 игроков'],
+          en: ['9 players', '10 players', '11 players', '12 players']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: "Darvozabon bilan birga o'n bir nafar.",
+          ru: 'Включая вратаря ровно 11.',
+          en: '10 outfielders plus 1 goalkeeper.'
+        }
+      }
+    ],
+    medium: [
+      {
+        question: {
+          uz: "Yozgi Olimpiya o'yinlari odatda necha yilda bir marta o'tkaziladi?",
+          ru: 'С какой периодичностью обычно проводятся летние Олимпийские игры?',
+          en: 'How often are the Summer Olympic Games normally held?'
+        },
+        options: {
+          uz: ['2 yilda', '3 yilda', '4 yilda', '5 yilda'],
+          ru: ['Каждые 2 года', 'Каждые 3 года', 'Каждые 4 года', 'Каждые 5 лет'],
+          en: ['Every 2 years', 'Every 3 years', 'Every 4 years', 'Every 5 years']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: "To'rt yillik sikl (Olimpiada davri).",
+          ru: 'Четырехлетний цикл Олимпиады.',
+          en: 'A four-year cycle.'
+        }
+      }
+    ],
+    hard: [
+      {
+        question: {
+          uz: 'Klassik marafon yugurish masofasi qancha?',
+          ru: 'Какова официальная дистанция классического марафонского бега?',
+          en: 'What is the official distance of an Olympic marathon race?'
+        },
+        options: {
+          uz: ['40 km', '42 km 195 m', '45 km', '50 km'],
+          ru: ['40 км', '42 км 195 м', '45 км', '50 км'],
+          en: ['40 km', '42.195 km (26.2 mi)', '45 km', '50 km']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: '42 kilometr va 195 metr.',
+          ru: '42 километра и 195 метров.',
+          en: 'Just over 42 kilometers.'
+        }
+      }
+    ]
+  },
+  english: {
+    easy: [
+      {
+        question: {
+          uz: '"Book" so\'zining o\'zbekcha ma\'nosi nima?',
+          ru: 'Как переводится слово «Book»?',
+          en: 'What is the plural form of the noun "Child"?'
+        },
+        options: {
+          uz: ['Daftar', 'Kitob', 'Qalam', 'Xat'],
+          ru: ['Тетрадь', 'Книга', 'Карандаш', 'Письмо'],
+          en: ['Childs', 'Children', 'Childrens', 'Childes']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Sahifali mutolaa vositasi.',
+          ru: 'Предмет для чтения со страницами.',
+          en: 'Irregular plural form.'
+        }
+      }
+    ],
+    medium: [
+      {
+        question: {
+          uz: '"She ___ a talented doctor" jumlasidagi bo\'sh joyga qaysi to\'g\'ri keladi?',
+          ru: 'Какая форма глагола to be подходит: «She ___ a talented doctor»?',
+          en: 'Which form of the verb "to be" fits: "She ___ a talented doctor"?'
+        },
+        options: {
+          uz: ['am', 'are', 'is', 'be'],
+          ru: ['am', 'are', 'is', 'be'],
+          en: ['am', 'are', 'is', 'be']
+        },
+        correctIndex: 2,
+        hint: {
+          uz: 'Uchinchi shaxs birlik (he/she/it) uchun "is" ishlatiladi.',
+          ru: 'Для третьего лица единственного числа используется «is».',
+          en: 'Third-person singular form.'
+        }
+      }
+    ],
+    hard: [
+      {
+        question: {
+          uz: '"Piece of cake" inglizcha idiomasining ma\'nosi nima?',
+          ru: 'Что означает английская идиома «Piece of cake»?',
+          en: 'What does the English idiom "Piece of cake" mean?'
+        },
+        options: {
+          uz: ['Juda shirin taom', 'Juda oson va yengil ish', "Tug'ilgan kun torti", 'Qiyin vazifa'],
+          ru: ['Очень сладкое блюдо', 'Очень простое и легкое дело', 'Праздничный торт', 'Трудное испытание'],
+          en: ['A sweet dessert', 'Something very easy to do', 'A birthday party', 'A tough challenge']
+        },
+        correctIndex: 1,
+        hint: {
+          uz: 'Osonlik bilan bajariladigan ish haqida aytiladi.',
+          ru: 'Означает «проще простого».',
+          en: 'Refers to something effortless.'
+        }
+      }
+    ]
+  }
+};
+
+const DAILY_QUESTIONS = [
+  {
+    question: {
+      uz: 'Quyoshga eng yaqin turgan sayyora qaysi?',
+      ru: 'Какая планета находится ближе всего к Солнцу?',
+      en: 'Which planet is closest to the Sun?'
+    },
+    options: {
+      uz: ['Merkuriy', 'Venera', 'Mars', 'Yer'],
+      ru: ['Меркурий', 'Венера', 'Марс', 'Земля'],
+      en: ['Mercury', 'Venus', 'Mars', 'Earth']
+    },
+    correctIndex: 0,
+    hint: {
+      uz: 'Eng kichik va eng tez aylanuvchi sayyora.',
+      ru: 'Самая быстрая и маленькая планета системы.',
+      en: 'The smallest and fastest orbiting planet.'
+    }
+  },
+  {
+    question: {
+      uz: 'Alifbodagi birinchi dasturlash tilining yaratuvchisi kim hisoblanadi?',
+      ru: 'Кто считается первым в истории программистом?',
+      en: 'Who is widely regarded as the first computer programmer in history?'
+    },
+    options: {
+      uz: ['Alan Tyuring', 'Ada Lavleys', 'Blez Paskal', 'Charlz Bebbij'],
+      ru: ['Алан Тьюринг', 'Ада Лавлейс', 'Блез Паскаль', 'Чарльз Бэббидж'],
+      en: ['Alan Turing', 'Ada Lovelace', 'Blaise Pascal', 'Charles Babbage']
+    },
+    correctIndex: 1,
+    hint: {
+      uz: 'Lord Bayronning qizi.',
+      ru: 'Дочь поэта лорда Байрона.',
+      en: 'Daughter of Lord Byron.'
+    }
+  },
+  {
+    question: {
+      uz: "Dunyoning eng chuqur ko'li qaysi?",
+      ru: 'Какое озеро является самым глубоким на планете?',
+      en: 'What is the deepest lake in the world?'
+    },
+    options: {
+      uz: ['Kaspiy dengizi', "Baykal ko'li", "Viktoriya ko'li", "Yuqori ko'l"],
+      ru: ['Каспийское море', 'Байкал', 'Озеро Виктория', 'Озеро Верхнее'],
+      en: ['Caspian Sea', 'Lake Baikal', 'Lake Victoria', 'Lake Superior']
+    },
+    correctIndex: 1,
+    hint: {
+      uz: "Sibirda joylashgan chuchuk suvli ko'l.",
+      ru: 'Пресноводное озеро в Сибири.',
+      en: 'Freshwater lake in Siberia.'
+    }
+  }
+];
+
+    const ACHIEVEMENTS = [
+      { id: 'first_quiz', title: 'First Blood', description: 'Complete your first quiz game.', icon: '⚔️', gradient: 'from-amber-400 to-orange-500', xpReward: 50, check: (u) => u.gamesPlayed >= 1 },
+      { id: 'perfectionist', title: 'Flawless Mind', description: 'Complete a quiz with a 100% score.', icon: '✨', gradient: 'from-emerald-400 to-teal-500', xpReward: 150, check: (u) => u.perfectScores >= 1 },
+      { id: 'speed_demon', title: 'Speed Demon', description: 'Answer questions in under 10 seconds.', icon: '⚡', gradient: 'from-yellow-400 to-amber-500', xpReward: 100, check: (u) => u.fastAnswers >= 3 },
+      { id: 'titan', title: 'Trivia Titan', description: 'Accumulate over 1,500 total points.', icon: '👑', gradient: 'from-purple-500 to-indigo-600', xpReward: 200, check: (u) => u.points >= 1500 },
+      { id: 'polymath', title: 'The Polymath', description: 'Play quizzes in 3+ categories.', icon: '🌌', gradient: 'from-cyan-400 to-blue-600', xpReward: 120, check: (u) => (u.categoriesPlayed && u.categoriesPlayed.length >= 3) },
+      { id: 'pvp_champion', title: 'Arena Gladiator', description: 'Win a competitive 1v1 battle.', icon: '🏆', gradient: 'from-rose-500 to-red-600', xpReward: 150, check: (u) => u.multiplayerWins >= 1 },
+      { id: 'daily_streak', title: 'Daily Devotee', description: 'Complete a Daily Challenge.', icon: '🔥', gradient: 'from-orange-500 to-rose-500', xpReward: 80, check: (u) => u.dailyCompleted >= 1 },
+      { id: 'century', title: 'Century Marksman', description: 'Answer 25 questions correctly.', icon: '🎯', gradient: 'from-fuchsia-500 to-pink-600', xpReward: 250, check: (u) => u.correctAnswers >= 25 }
+    ];
+
+    const AVATARS = [
+      { id: 'av1', name: 'Cyber Ninja', icon: '🥷' },
+      { id: 'av2', name: 'Cosmic Wizard', icon: '🧙‍♂️' },
+      { id: 'av3', name: 'Quantum Hacker', icon: '🤖' },
+      { id: 'av4', name: 'Valkyrie Ace', icon: '👸' },
+      { id: 'av5', name: 'Shadow Knight', icon: '🛡️' },
+      { id: 'av6', name: 'Astronaut Scout', icon: '👨‍🚀' }
+    ];
+
+    const LEVEL_TITLES = [
+      'Apprentice Scholar', 'Curious Seeker', 'Arena Contender', 'Knowledge Adept',
+      'Trivia Strategist', 'Mastermind', 'Grandmaster Scholar', 'Mythic Champion',
+      'Apex Polymath', 'Quiz Arena Legend'
+    ];
+
+    const LEADERBOARDS = {
+      global: [
+        { rank: 1, username: 'CyberViper_99', avatar: '🥷', points: 9840, level: 12, winRate: '88%', badge: 'Legend' },
+        { rank: 2, username: 'NovaBrain_X', avatar: '🧙‍♂️', points: 8720, level: 11, winRate: '84%', badge: 'Grandmaster' },
+        { rank: 3, username: 'QuantumZenith', avatar: '🤖', points: 7650, level: 10, winRate: '81%', badge: 'Master' },
+        { rank: 4, username: 'AstraValkyrie', avatar: '👸', points: 6490, level: 9, winRate: '79%', badge: 'Elite' },
+        { rank: 5, username: 'SolarisEcho', avatar: '👨‍🚀', points: 5880, level: 8, winRate: '75%', badge: 'Diamond' },
+        { rank: 6, username: 'ShadowKnight', avatar: '🛡️', points: 5120, level: 8, winRate: '72%', badge: 'Platinum' }
+      ],
+      weekly: [
+        { rank: 1, username: 'QuantumZenith', avatar: '🤖', points: 2150, level: 10, winRate: '92%', badge: 'Hot Streak' },
+        { rank: 2, username: 'CyberViper_99', avatar: '🥷', points: 1980, level: 12, winRate: '87%', badge: 'Relentless' },
+        { rank: 3, username: 'SolarisEcho', avatar: '👨‍🚀', points: 1820, level: 8, winRate: '83%', badge: 'Rising Star' },
+        { rank: 4, username: 'NovaBrain_X', avatar: '🧙‍♂️', points: 1650, level: 11, winRate: '80%', badge: 'Master' }
+      ],
+      monthly: [
+        { rank: 1, username: 'NovaBrain_X', avatar: '🧙‍♂️', points: 6420, level: 11, winRate: '89%', badge: 'Champion' },
+        { rank: 2, username: 'CyberViper_99', avatar: '🥷', points: 6150, level: 12, winRate: '86%', badge: 'Legend' },
+        { rank: 3, username: 'QuantumZenith', avatar: '🤖', points: 5890, level: 10, winRate: '85%', badge: 'Master' },
+        { rank: 4, username: 'AstraValkyrie', avatar: '👸', points: 4920, level: 9, winRate: '78%', badge: 'Elite' }
+      ]
+    };
+
+    // ==========================================
+    // 5. MAIN ROOT APP CONTAINER
+    // ==========================================
+    // ==========================================
+    // MULTILINGUAL DICTIONARY (UZ / RU / EN)
+    // ==========================================
+    const TRANSLATIONS = {
+  uz: {
+    navHome: "Asosiy",
+    navCategories: "Toifalar",
+    navModes: "Rejimlar",
+    navLeaderboard: "Reyting",
+    navProfile: "Profil",
+    navSettings: "Sozlamalar",
+
+    appTitle: "QUIZ ARENA",
+    appTagline: "BILIMLAR JANG MAYDONI",
+    welcomeTitle: "Arenaga xush kelibsiz!",
+    welcomeSubtitle: "O'zbekiston va jahon aql jangchilari bilan bellashing",
+    enterNamePlaceholder: "Jangchi ismingizni kiriting...",
+    chooseAvatar: "Jangchi avataringizni tanlang",
+    btnEnterArena: "ARENAGA KIRISH ⚡",
+
+    welcomeBack: "Xush kelibsiz",
+    levelGladiator: "Gladiator",
+    xpProgress: "XP To'plash",
+    playNowBtn: "HOZIR O'YNASH 🚀",
+    dailyChallengeBanner: "KUNLIK SINOV",
+    dailyChallengeDesc: "Har kungi maxsus 5 ta savol • 2x XP va oltin sovrinlar!",
+    startDailyBtn: "BOSHLASH 🎯",
+    statsTitle: "Arena Statistikasi",
+    statGames: "O'yinlar",
+    statWinRate: "G'alaba",
+    statCorrect: "To'g'ri",
+    statPoints: "Jami Ball",
+    quickCategoriesTitle: "Ommabop Toifalar",
+    seeAll: "Barchasi ➔",
+
+    categoriesHeader: "Savol Toifalari",
+    selectCategory: "Toifani tanlang va bilimingizni sinang",
+    diffEasy: "OSON",
+    diffMedium: "O'RTA",
+    diffHard: "QIYIN",
+
+    gameModesHeader: "O'yin Rejimini Tanlang",
+    modeSingle: "Yakkalik O'yin",
+    modeSingleDesc: "8 ta toifa va 3 xil qiyinlik darajasida yakkama-yakka bilimingizni sinang.",
+    modeMulti: "Do'st bilan 1v1",
+    modeMultiDesc: "Xona kodi orqali do'stingiz bilan real vaqtda jonli aql jangida bellashing.",
+    modeQuick: "Tezkor Jang",
+    modeQuickDesc: "Jonli gladiator bilan avtomatik tezkor 1v1 bellashuv.",
+    modePractice: "Mashg'ulot Rejimi",
+    modePracticeDesc: "Vaqt bosimisiz, xotirjam savollarga javob bering va o'rganing.",
+    modeDaily: "Kunlik Topshiriq",
+    modeDailyDesc: "Har kuni 1 marta beriladigan saralangan 5 ta savol (2x bonus XP).",
+    searchingOpponent: "Raqib qidirilmoqda...",
+    matchFound: "Raqib topildi! Jang boshlanmoqda...",
+
+    quitBtn: "✕ Chiqish",
+    questionNum: "Savol",
+    scoreText: "Ball",
+    secLeft: "soniya",
+    lifelinesTitle: "Yordamlar",
+    lifeline5050: "50:50",
+    lifelineFreeze: "+15s Vaqt",
+    lifelineHint: "Maslahat 💡",
+    hintLabel: "Maslahat:",
+    nextQuestionBtn: "KEYINGI SAVOL ➔",
+    finishQuizBtn: "NATIJANI KO'RISH 🏁",
+    correctAnswer: "To'g'ri javob!",
+    wrongAnswer: "Noto'g'ri javob!",
+    timeUp: "Vaqt tugadi!",
+
+    mpTitle: "Ko'p O'yinchili Arena",
+    createRoomBtn: "YANGI XONA YARATISH ➔",
+    joinRoomBtn: "XONAGA KIRISH ➔",
+    orText: "— YOKI —",
+    enterRoomCode: "XONA KODINI KIRITING",
+    roomChamberTitle: "Arena Xonasi",
+    roomCodeLabel: "Sizning Xona Kodingiz:",
+    shareCodeNotice: "Ushbu kodni do'stingizga yuboring, u o'z telefonida kirishi mumkin!",
+    startBattleBtn: "JANGNI BOSHLASH ⚔️",
+    leaveLobbyBtn: "Xonani tark etish",
+    hostWaiting: "Do'stingiz ulanishi kutilmoqda...",
+    rivalConnected: "Do'stingiz jangga tayyor!",
+
+    resultsHeader: "O'yin Yakunlandi!",
+    victoryTitle: "G'ALABA! 🏆",
+    defeatTitle: "MAG'LUBIYAT 💀",
+    drawTitle: "DURANG! 🤝",
+    yourScore: "Sizning ballingiz",
+    opponentScore: "Raqib bali",
+    accuracyText: "Aniqlik darajasi",
+    correctOutOf: "to'g'ri javob berildi",
+    playAgainBtn: "QAYTA O'YNASH 🔄",
+    backHomeBtn: "Bosh Sahifaga Qaytish 🏠",
+
+    leaderboardHeader: "Arena Reytingi",
+    tabGlobal: "Umumiy",
+    tabWeekly: "Haftalik",
+    tabMonthly: "Oylik",
+    rankPts: "BALL",
+
+    profileHeader: "Jangchi Profili",
+    editProfile: "Profilni tahrirlash",
+    saveProfile: "Saqlash",
+    totalScoreEarned: "To'plangan Ballar",
+    rankTier: "Gladiator Rutbasi",
+    achievementsTitle: "Yutuq Nishonlari (Badges)",
+
+    settingsHeader: "Sozlamalar",
+    languageSetting: "Til / Tilni tanlash",
+    vibrationSetting: "Vibratsiya va Haptik",
+    soundSetting: "Ovoz effektlari",
+    onText: "YONIQ",
+    offText: "O'CHIQ",
+    resetBtn: "Statistikani qayta boshlash",
+    backMenu: "Menyuga qaytish",
+
+    dailyRewardClaimed: "KUNLIK MUKOFOT OLINDI!",
+    claimedSubtitle: "Sizga 150 ball va 100 XP taqdim etildi. Ertaga yana kiring!",
+    levelUpTitle: "YANGI DARAJA OCHILDI! 🎉",
+    levelUpSubtitle: "Tabriklaymiz, siz yangi jangchilik rutbasiga ko'tarildingiz!",
+    closeBtn: "DAVOM ETISH ➔",
+    levelProgress: "Daraja ko'rsatkichi",
+    statPoints: "Ballar",
+    statBattles: "Janglar",
+    statAccuracy: "Aniqlik",
+    quickPlay: "TEZKOR O'YIN",
+    dailyMasterChallenge: "KUNLIK ASOSIY SINOV",
+    dailyMultiQuiz: "Har kunlik aralash test",
+    dailyDesc: "5 ta maxsus saralangan savol. Bugun 2X Double XP bonusini qo'lga kiriting!",
+    playChallenge: "Sinovni Boshlash ➔",
+    sevenDayRewards: "7 KUNLIK ARENA MUKOFOTLARI",
+    dailyLoginRewards: "Kunlik Kirish Sovg'alari",
+    dailyLoginDesc: "Jangga qaytgan har bir kuningiz uchun oshib boruvchi mukofotlarni oling.",
+    streakDay: "Davomiylik: Kun",
+    claimReward: "Sovg'ani Olish 🎁",
+    claimedToday: "Bugun Olindi ✓",
+    featuredCategories: "Ommabop Toifalar",
+    jumpRightIn: "Bilimingizni sinash uchun toifani tanlang",
+    viewAll8: "Barchasi (8 ta) ➔",
+    questionsTiers: "15 ta Savol • 3 Daraja",
+    gameModes: "O'yin Rejimlari",
+    allModes: "Barcha Rejimlar ➔",
+    selectCategoryAction: "Toifani Tanlash",
+    hostOrJoin: "Xona Ochish / Kirish",
+    findOpponent: "Raqib Izlash",
+    startPractice: "Mashg'ulotni Boshlash",
+    acceptChallenge: "Sinovga Kirish",
+    categoriesSubtitle: "8 ta fan va Oson, O'rta, Qiyin darajalar",
+    tierLabel: "Daraja:",
+    searchCategory: "🔍 Toifani qidirish...",
+    questionsRound: "5 ta Savollik Raund",
+    selectArenaMode: "Arena Rejimini Tanlang",
+    selectArenaModeDesc: "Yakkama-yakka, do'st bilan yoki tezkor onlayn bellashing",
+    promotionAchieved: "Yangi Rutba Ochildi!",
+    levelUpModalTitle: "DARAJA KO'TARILDI!",
+    claimAndContinue: "Olish va Davom etish ➔",
+    dailyCalendarTitle: "7 Kunlik Arena Mukofotlari",
+    dailyCalendarSub: "Ketma-ket har kuni kiring va kattaroq sovrinlarni qo'lga kiriting!",
+
+  },
+
+  ru: {
+    navHome: "Главная",
+    navCategories: "Категории",
+    navModes: "Режимы",
+    navLeaderboard: "Рейтинг",
+    navProfile: "Профиль",
+    navSettings: "Настройки",
+
+    appTitle: "QUIZ ARENA",
+    appTagline: "АРЕНА ИНТЕЛЛЕКТУАЛЬНЫХ БИТВ",
+    welcomeTitle: "Добро пожаловать на Арену!",
+    welcomeSubtitle: "Сражайтесь за звание лучшего эрудита с сильнейшими игроками",
+    enterNamePlaceholder: "Введите имя гладиатора...",
+    chooseAvatar: "Выберите аватар для битвы",
+    btnEnterArena: "ВОЙТИ НА АРЕНУ ⚡",
+
+    welcomeBack: "С возвращением",
+    levelGladiator: "Гладиатор",
+    xpProgress: "Прогресс XP",
+    playNowBtn: "ИГРАТЬ СЕЙЧАС 🚀",
+    dailyChallengeBanner: "ВЫЗОВ ДНЯ",
+    dailyChallengeDesc: "5 особых вопросов каждый день • 2x XP и золотые награды!",
+    startDailyBtn: "НАЧАТЬ 🎯",
+    statsTitle: "Статистика Арены",
+    statGames: "Игр",
+    statWinRate: "Побед",
+    statCorrect: "Верно",
+    statPoints: "Очков",
+    quickCategoriesTitle: "Популярные Категории",
+    seeAll: "Все ➔",
+
+    categoriesHeader: "Категории Викторины",
+    selectCategory: "Выберите тему и проверьте свои знания",
+    diffEasy: "ЛЕГКО",
+    diffMedium: "СРЕДНЕ",
+    diffHard: "СЛОЖНО",
+
+    gameModesHeader: "Выберите Режим Игры",
+    modeSingle: "Одиночная Игра",
+    modeSingleDesc: "Испытайте себя в 8 категориях с 3 уровнями сложности без спешки.",
+    modeMulti: "Дуэль 1 на 1",
+    modeMultiDesc: "Создайте код комнаты и сразитесь с другом в реальном времени.",
+    modeQuick: "Быстрый Матч",
+    modeQuickDesc: "Мгновенный авто-подбор соперника для захватывающей битвы.",
+    modePractice: "Тренировка",
+    modePracticeDesc: "Играйте спокойно без таймера, изучая объяснения к ответам.",
+    modeDaily: "Вызов Дня",
+    modeDailyDesc: "Ежедневный комплексный тест с удвоенным опытом 2x XP.",
+    searchingOpponent: "Поиск соперника...",
+    matchFound: "Соперник найден! Битва начинается...",
+
+    quitBtn: "✕ Выход",
+    questionNum: "Вопрос",
+    scoreText: "Очки",
+    secLeft: "сек",
+    lifelinesTitle: "Подсказки",
+    lifeline5050: "50:50",
+    lifelineFreeze: "+15с Время",
+    lifelineHint: "Подсказка 💡",
+    hintLabel: "Подсказка:",
+    nextQuestionBtn: "СЛЕДУЮЩИЙ ВОПРОС ➔",
+    finishQuizBtn: "РЕЗУЛЬТАТЫ 🏁",
+    correctAnswer: "Верно!",
+    wrongAnswer: "Неверно!",
+    timeUp: "Время истекло!",
+
+    mpTitle: "Мультиплеер Арена",
+    createRoomBtn: "СОЗДАТЬ КОМНАТУ ➔",
+    joinRoomBtn: "ВОЙТИ В КОМНАТУ ➔",
+    orText: "— ИЛИ —",
+    enterRoomCode: "ВВЕДИТЕ КОД КОМНАТЫ",
+    roomChamberTitle: "Палата Арены",
+    roomCodeLabel: "Ваш код комнаты:",
+    shareCodeNotice: "Отправьте этот код другу, чтобы начать совместный бой!",
+    startBattleBtn: "НАЧАТЬ БИТВУ ⚔️",
+    leaveLobbyBtn: "Покинуть комнату",
+    hostWaiting: "Ожидание подключения друга...",
+    rivalConnected: "Соперник готов к битве!",
+
+    resultsHeader: "Игра Завершена!",
+    victoryTitle: "ПОБЕДА! 🏆",
+    defeatTitle: "ПОРАЖЕНИЕ 💀",
+    drawTitle: "НИЧЬЯ! 🤝",
+    yourScore: "Ваш результат",
+    opponentScore: "Результат соперника",
+    accuracyText: "Точность ответов",
+    correctOutOf: "правильных ответов",
+    playAgainBtn: "ИГРАТЬ СНОВА 🔄",
+    backHomeBtn: "На Главную 🏠",
+
+    leaderboardHeader: "Таблица Лидеров",
+    tabGlobal: "Глобальный",
+    tabWeekly: "Недельный",
+    tabMonthly: "Месячный",
+    rankPts: "ОЧКОВ",
+
+    profileHeader: "Профиль Гладиатора",
+    editProfile: "Редактировать",
+    saveProfile: "Сохранить",
+    totalScoreEarned: "Набрано очков",
+    rankTier: "Ранг гладиатора",
+    achievementsTitle: "Значки Достижений",
+
+    settingsHeader: "Настройки",
+    languageSetting: "Язык интерфейса",
+    vibrationSetting: "Вибрация и тактильный отклик",
+    soundSetting: "Звуковые эффекты",
+    onText: "ВКЛ",
+    offText: "ВЫКЛ",
+    resetBtn: "Сбросить прогресс",
+    backMenu: "Назад в меню",
+
+    dailyRewardClaimed: "НАГРАДА ПОЛУЧЕНА!",
+    claimedSubtitle: "Вам начислено +150 очков и +100 XP. Заходите завтра снова!",
+    levelUpTitle: "НОВЫЙ УРОВЕНЬ! 🎉",
+    levelUpSubtitle: "Поздравляем, вы открыли новый почетный ранг гладиатора!",
+    closeBtn: "ПРОДОЛЖИТЬ ➔",
+    levelProgress: "Прогресс уровня",
+    statPoints: "Очки",
+    statBattles: "Битвы",
+    statAccuracy: "Точность",
+    quickPlay: "БЫСТРАЯ ИГРА",
+    dailyMasterChallenge: "ВЫЗОВ ДНЯ",
+    dailyMultiQuiz: "Ежедневный комплексный тест",
+    dailyDesc: "5 особых вопросов. Пройдите сегодня и получите бонус 2X Double XP!",
+    playChallenge: "Начать Вызов ➔",
+    sevenDayRewards: "7-ДНЕВНЫЕ НАГРАДЫ АРЕНЫ",
+    dailyLoginRewards: "Ежедневные Награды за Вход",
+    dailyLoginDesc: "Заходите каждый день и забирайте возрастающие награды.",
+    streakDay: "Серия: День",
+    claimReward: "Забрать Награду 🎁",
+    claimedToday: "Получено Сегодня ✓",
+    featuredCategories: "Популярные Категории",
+    jumpRightIn: "Быстрый переход к интеллектуальным битвам",
+    viewAll8: "Все 8 ➔",
+    questionsTiers: "15 Вопросов • 3 Уровня",
+    gameModes: "Режимы Игры",
+    allModes: "Все Режимы ➔",
+    selectCategoryAction: "Выбрать Категорию",
+    hostOrJoin: "Создать / Войти",
+    findOpponent: "Найти Соперника",
+    startPractice: "Начать Тренировку",
+    acceptChallenge: "Принять Вызов",
+    categoriesSubtitle: "8 дисциплин с уровнями Легко, Средне и Сложно",
+    tierLabel: "Уровень:",
+    searchCategory: "🔍 Поиск категории...",
+    questionsRound: "Раунд из 5 вопросов",
+    selectArenaMode: "Выберите Режим Арены",
+    selectArenaModeDesc: "Сражайтесь в одиночку, с другом или в быстром матче",
+    promotionAchieved: "Новый Ранг Достигнут!",
+    levelUpModalTitle: "НОВЫЙ УРОВЕНЬ!",
+    claimAndContinue: "Забрать и Продолжить ➔",
+    dailyCalendarTitle: "7-Дневный Календарь Наград",
+    dailyCalendarSub: "Заходите каждый день подряд и получайте супер-призы!",
+
+  },
+
+  en: {
+    navHome: "Home",
+    navCategories: "Categories",
+    navModes: "Modes",
+    navLeaderboard: "Rankings",
+    navProfile: "Profile",
+    navSettings: "Settings",
+
+    appTitle: "QUIZ ARENA",
+    appTagline: "COMPETITIVE KNOWLEDGE BATTLE",
+    welcomeTitle: "Welcome to the Arena!",
+    welcomeSubtitle: "Battle with smart players across the globe and claim victory",
+    enterNamePlaceholder: "Enter gladiator name...",
+    chooseAvatar: "Choose your battle avatar",
+    btnEnterArena: "ENTER ARENA ⚡",
+
+    welcomeBack: "Welcome back",
+    levelGladiator: "Gladiator",
+    xpProgress: "XP Progress",
+    playNowBtn: "PLAY NOW 🚀",
+    dailyChallengeBanner: "DAILY CHALLENGE",
+    dailyChallengeDesc: "5 curated questions every single day • 2x XP and trophy rewards!",
+    startDailyBtn: "START 🎯",
+    statsTitle: "Arena Career Stats",
+    statGames: "Games",
+    statWinRate: "Win Rate",
+    statCorrect: "Correct",
+    statPoints: "Points",
+    quickCategoriesTitle: "Top Categories",
+    seeAll: "All ➔",
+
+    categoriesHeader: "Quiz Categories",
+    selectCategory: "Choose a discipline and challenge your mind",
+    diffEasy: "EASY",
+    diffMedium: "MEDIUM",
+    diffHard: "HARD",
+
+    gameModesHeader: "Select Game Mode",
+    modeSingle: "Single Player",
+    modeSingleDesc: "Climb through 8 distinct categories across 3 difficulty tiers.",
+    modeMulti: "Multiplayer 1v1",
+    modeMultiDesc: "Create or join a room code to duel friends live in real-time.",
+    modeQuick: "Quick Match",
+    modeQuickDesc: "Instant automated matchmaking against an active gladiator.",
+    modePractice: "Practice Mode",
+    modePracticeDesc: "Answer at your own leisurely pace without timer pressure.",
+    modeDaily: "Daily Challenge",
+    modeDailyDesc: "Curated 5-question multi-discipline exam once per day (2x XP).",
+    searchingOpponent: "Searching for opponent...",
+    matchFound: "Opponent found! Battle initiating...",
+
+    quitBtn: "✕ Quit",
+    questionNum: "Question",
+    scoreText: "Score",
+    secLeft: "sec",
+    lifelinesTitle: "Lifelines",
+    lifeline5050: "50:50",
+    lifelineFreeze: "+15s Freeze",
+    lifelineHint: "Hint 💡",
+    hintLabel: "Hint:",
+    nextQuestionBtn: "NEXT QUESTION ➔",
+    finishQuizBtn: "VIEW RESULTS 🏁",
+    correctAnswer: "Correct answer!",
+    wrongAnswer: "Wrong answer!",
+    timeUp: "Time is up!",
+
+    mpTitle: "Multiplayer Arena",
+    createRoomBtn: "CREATE PRIVATE ROOM ➔",
+    joinRoomBtn: "JOIN WITH CODE ➔",
+    orText: "— OR —",
+    enterRoomCode: "ENTER ROOM CODE",
+    roomChamberTitle: "Arena Chamber",
+    roomCodeLabel: "Your Room Code:",
+    shareCodeNotice: "Share this code with your friend so they can join your duel!",
+    startBattleBtn: "START MATCH ⚔️",
+    leaveLobbyBtn: "Leave Lobby",
+    hostWaiting: "Waiting for opponent to connect...",
+    rivalConnected: "Opponent ready for battle!",
+
+    resultsHeader: "Game Finished!",
+    victoryTitle: "VICTORY! 🏆",
+    defeatTitle: "DEFEAT 💀",
+    drawTitle: "DRAW! 🤝",
+    yourScore: "Your Score",
+    opponentScore: "Opponent Score",
+    accuracyText: "Accuracy Rate",
+    correctOutOf: "answered correctly",
+    playAgainBtn: "PLAY AGAIN 🔄",
+    backHomeBtn: "Return Home 🏠",
+
+    leaderboardHeader: "Arena Rankings",
+    tabGlobal: "Global",
+    tabWeekly: "Weekly",
+    tabMonthly: "Monthly",
+    rankPts: "PTS",
+
+    profileHeader: "Gladiator Profile",
+    editProfile: "Edit Profile",
+    saveProfile: "Save Changes",
+    totalScoreEarned: "Career Points",
+    rankTier: "Gladiator Rank",
+    achievementsTitle: "Achievement Badges",
+
+    settingsHeader: "Settings",
+    languageSetting: "Language / Til / Язык",
+    vibrationSetting: "Vibration & Haptics",
+    soundSetting: "Sound Effects",
+    onText: "ON",
+    offText: "OFF",
+    resetBtn: "Reset All Progress",
+    backMenu: "Back to Menu",
+
+    dailyRewardClaimed: "DAILY REWARD CLAIMED!",
+    claimedSubtitle: "You received +150 Points and +100 XP. Come back tomorrow!",
+    levelUpTitle: "NEW LEVEL UNLOCKED! 🎉",
+    levelUpSubtitle: "Congratulations! You ascended to a higher gladiator rank!",
+    closeBtn: "CONTINUE ➔",
+    levelProgress: "Level Progress",
+    statPoints: "Points",
+    statBattles: "Battles",
+    statAccuracy: "Accuracy",
+    quickPlay: "QUICK PLAY",
+    dailyMasterChallenge: "DAILY MASTER CHALLENGE",
+    dailyMultiQuiz: "Daily Multi-Discipline Quiz",
+    dailyDesc: "5 curated questions. Complete today for a 2X Double XP bonus!",
+    playChallenge: "Play Challenge ➔",
+    sevenDayRewards: "7-DAY ARENA REWARDS",
+    dailyLoginRewards: "Daily Login Rewards",
+    dailyLoginDesc: "Claim escalating rewards each consecutive day you return to battle.",
+    streakDay: "Streak: Day",
+    claimReward: "Claim Reward 🎁",
+    claimedToday: "Claimed Today ✓",
+    featuredCategories: "Featured Categories",
+    jumpRightIn: "Jump right into competitive quizzes",
+    viewAll8: "View All 8 ➔",
+    questionsTiers: "15 Questions • 3 Tiers",
+    gameModes: "Game Modes",
+    allModes: "All Modes ➔",
+    selectCategoryAction: "Select Category",
+    hostOrJoin: "Host or Join Room",
+    findOpponent: "Find Opponent",
+    startPractice: "Start Practice",
+    acceptChallenge: "Accept Challenge",
+    categoriesSubtitle: "8 disciplines with Easy, Medium, and Hard tiers",
+    tierLabel: "Tier:",
+    searchCategory: "🔍 Filter categories...",
+    questionsRound: "5 Questions Round",
+    selectArenaMode: "Select Game Mode",
+    selectArenaModeDesc: "Climb alone, duel friends or jump into instant matches",
+    promotionAchieved: "Promotion Achieved!",
+    levelUpModalTitle: "LEVEL UP!",
+    claimAndContinue: "Claim & Continue ➔",
+    dailyCalendarTitle: "Daily Arena Rewards Calendar",
+    dailyCalendarSub: "Log in consecutive days to unlock higher tier bonuses!",
+
+  }
+};
+
+
+
+    // ==========================================
+    // MULTILINGUAL HELPERS FOR CATEGORIES & LEVELS
+    // ==========================================
+    const CAT_I18N = {
+      general: {
+        name: { uz: 'Umumiy Bilimlar', ru: 'Общие Знания', en: 'General Knowledge' },
+        desc: { uz: 'Dunyo sirlari, mashhur faktlar va qiziqarli savollar.', ru: 'Интересные факты обо всем на свете и эрудиция.', en: 'Test your awareness of worldly facts and trivia.' }
+      },
+      science: {
+        name: { uz: 'Fan va Tabiat', ru: 'Наука и Природа', en: 'Science' },
+        desc: { uz: "Fizika, kimyo, biologiya va koinot mo'jizalari.", ru: 'Физика, химия, биология и тайны вселенной.', en: 'Physics, chemistry, biology, and celestial marvels.' }
+      },
+      mathematics: {
+        name: { uz: 'Matematika', ru: 'Математика', en: 'Mathematics' },
+        desc: { uz: 'Mantiqiy hisob-kitob, tenglamalar va geometriya.', ru: 'Логика, устный счет, уравнения и геометрия.', en: 'Mental arithmetic, logic, geometry, and equations.' }
+      },
+      history: {
+        name: { uz: 'Tarix', ru: 'История', en: 'History' },
+        desc: { uz: 'Qadimgi sivilizatsiyalar, buyuk sarkardalar va voqealar.', ru: 'Древние цивилизации, великие полководцы и даты.', en: 'Ancient empires, world wars, and iconic figures.' }
+      },
+      geography: {
+        name: { uz: 'Geografiya', ru: 'География', en: 'Geography' },
+        desc: { uz: 'Mamlakatlar, poytaxtlar, okeanlar va tabiat zonalari.', ru: 'Страны, столицы мира, океаны и горы.', en: 'Capitals, continents, oceans, and natural wonders.' }
+      },
+      technology: {
+        name: { uz: 'Texnologiya va IT', ru: 'Технологии и IT', en: 'Technology' },
+        desc: { uz: "Kompyuterlar, dasturlash, sun'iy intellekt va internet.", ru: 'Компьютеры, программирование, ИИ и гаджеты.', en: 'Computers, AI, algorithms, gadgets, and the internet.' }
+      },
+      sports: {
+        name: { uz: 'Sport', ru: 'Спорт', en: 'Sports' },
+        desc: { uz: 'Futbol, Olimpiada, chempionlar va jahon rekordlari.', ru: 'Футбол, Олимпийские игры, чемпионы и рекорды.', en: 'Athletes, champions, football, basketball, and Olympics.' }
+      },
+      english: {
+        name: { uz: 'Ingliz Tili', ru: 'Английский Язык', en: 'English' },
+        desc: { uz: "Grammatika, so'z boyligi, iboralar va adabiyot.", ru: 'Грамматика, словарный запас, идиомы и фразы.', en: 'Grammar, vocabulary, idioms, and literature.' }
+      }
+    };
+
+    function getCatName(cat, lang = 'uz') {
+      if (!cat) return '';
+      const id = typeof cat === 'string' ? cat : cat.id;
+      if (CAT_I18N[id] && CAT_I18N[id].name) {
+        return CAT_I18N[id].name[lang] || CAT_I18N[id].name.uz || CAT_I18N[id].name.en;
+      }
+      return typeof cat === 'object' && cat.name ? cat.name : id;
+    }
+
+    function getCatDesc(cat, lang = 'uz') {
+      if (!cat) return '';
+      const id = typeof cat === 'string' ? cat : cat.id;
+      if (CAT_I18N[id] && CAT_I18N[id].desc) {
+        return CAT_I18N[id].desc[lang] || CAT_I18N[id].desc.uz || CAT_I18N[id].desc.en;
+      }
+      return typeof cat === 'object' && cat.description ? cat.description : '';
+    }
+
+    const LEVEL_TITLES_I18N = {
+      uz: ["SHOGIRD OLIM", "ARENA YANGISI", "BILIM JANGCHISI", "BILIMDON RITSAR", "AQL UMRONI", "ARENA VETERANI", "DONO GLADIATOR", "YUKSAK GROSSMEYSTER", "YENGILMAS SARKARDA", "ARENA AFSONASI"],
+      ru: ["УЧЕНИК МУДРЕЦА", "НОВИЧОК АРЕНЫ", "ВОИН ЗНАНИЙ", "РЫЦАРЬ ЭРУДИЦИИ", "МАСТЕР РАЗУМА", "ВЕТЕРАН АРЕНЫ", "ГЛАДИАТОР ЗНАНИЙ", "ВЫСШИЙ ГРОССМЕЙСТЕР", "НЕПОБЕДИМЫЙ ПОЛКОВОДЕЦ", "ЛЕГЕНДА АРЕНЫ"],
+      en: ["APPRENTICE SCHOLAR", "ARENA NOVICE", "KNOWLEDGE WARRIOR", "SCHOLAR KNIGHT", "MIND MASTER", "ARENA VETERAN", "GLADIATOR SAGE", "GRANDMASTER", "INVINCIBLE CHAMPION", "ARENA LEGEND"]
+    };
+
+    function getLevelTitle(level, lang = 'uz') {
+      const list = LEVEL_TITLES_I18N[lang] || LEVEL_TITLES_I18N.uz;
+      return list[Math.min(Math.max(0, level - 1), list.length - 1)] || list[0];
+    }
+
+    function getTxt(item, lang = 'uz') {
+      if (!item) return '';
+      if (typeof item === 'string') return item;
+      return item[lang] || item['uz'] || item['en'] || Object.values(item)[0] || '';
+    }
+
+    function App() {
+      const [lang, setLang] = useState(() => {
+        try {
+          return localStorage.getItem('quiz_arena_lang') || 'uz';
+        } catch (e) {
+          return 'uz';
+        }
+      });
+      const t = TRANSLATIONS[lang] || TRANSLATIONS.uz;
+
+      useEffect(() => {
+        try {
+          localStorage.setItem('quiz_arena_lang', lang);
+        } catch (e) {}
+      }, [lang]);
+
+      const STORAGE_KEY = 'quiz_arena_local_v3';
+      const DEFAULT_USER = {
+        username: 'GladiatorOne',
+        avatar: '🥷',
+        level: 2,
+        xp: 260,
+        points: 620,
+        gamesPlayed: 3,
+        correctAnswers: 12,
+        totalAnswersAttempted: 15,
+        multiplayerWins: 1,
+        perfectScores: 1,
+        fastAnswers: 4,
+        categoriesPlayed: ['general', 'technology'],
+        dailyCompleted: 0,
+        loginStreak: 2,
+        lastDailyClaim: null,
+        isLoggedIn: true
+      };
+
+      const [user, setUser] = useState(() => {
+        try {
+          const s = localStorage.getItem(STORAGE_KEY);
+          if (s) return JSON.parse(s);
+        } catch (e) {}
+        return DEFAULT_USER;
+      });
+
+      const [currentScreen, setCurrentScreen] = useState('home');
+      const [soundEnabled, setSoundEnabled] = useState(true);
+      const [activeGameConfig, setActiveGameConfig] = useState(null);
+      const [lastResultsData, setLastResultsData] = useState(null);
+      const [activeRoomData, setActiveRoomData] = useState(null);
+
+      const [isDailyRewardOpen, setIsDailyRewardOpen] = useState(false);
+      const [levelUpModalData, setLevelUpModalData] = useState({ visible: false, level: 1 });
+
+      useEffect(() => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        } catch (e) {}
+      }, [user]);
+
+      const toggleSound = () => {
+        const next = !soundEnabled;
+        setSoundEnabled(next);
+        sound.setEnabled(next);
+        if (next) sound.playClick();
+      };
+
+      const handleLogin = ({ username, avatar }) => {
+        setUser(prev => ({ ...prev, username, avatar, isLoggedIn: true }));
+        setCurrentScreen('home');
+      };
+
+      const handleStartQuiz = (config) => {
+        setActiveGameConfig(config);
+        setCurrentScreen('quiz');
+      };
+
+      const handleFinishGame = ({ userScore, opponentScore, totalQuestions, answersLog, gameConfig, opponent }) => {
+        const correctCount = answersLog.filter(a => a.isCorrect).length;
+        const fastCount = answersLog.filter(a => a.isCorrect && a.timeTaken < 10).length;
+        const isPerfect = correctCount === totalQuestions;
+        const isWinner = opponent ? userScore > opponentScore : correctCount >= 4;
+
+        if (isWinner || isPerfect) {
+          triggerConfetti();
+        }
+
+        const gainedXp = Math.round((userScore / 10) + (correctCount * 15));
+        const nextXp = user.xp + gainedXp;
+        const nextLevel = Math.max(1, Math.floor(nextXp / 200) + 1);
+
+        if (nextLevel > user.level) {
+          sound.playLevelUp();
+          triggerConfetti();
+          setLevelUpModalData({ visible: true, level: nextLevel });
+        } else {
+          if (isWinner) sound.playVictory();
+        }
+
+        const catSet = new Set(user.categoriesPlayed || []);
+        if (gameConfig.category) catSet.add(gameConfig.category);
+
+        setUser(prev => ({
+          ...prev,
+          xp: nextXp,
+          level: nextLevel,
+          points: prev.points + userScore,
+          gamesPlayed: prev.gamesPlayed + 1,
+          correctAnswers: prev.correctAnswers + correctCount,
+          totalAnswersAttempted: prev.totalAnswersAttempted + totalQuestions,
+          fastAnswers: (prev.fastAnswers || 0) + fastCount,
+          perfectScores: (prev.perfectScores || 0) + (isPerfect ? 1 : 0),
+          multiplayerWins: (prev.multiplayerWins || 0) + (opponent && isWinner ? 1 : 0),
+          dailyCompleted: (prev.dailyCompleted || 0) + (gameConfig.mode === 'daily' ? 1 : 0),
+          categoriesPlayed: Array.from(catSet)
+        }));
+
+        setLastResultsData({
+          userScore,
+          opponentScore,
+          totalQuestions,
+          answersLog,
+          gameConfig,
+          opponent
+        });
+
+        setCurrentScreen('results');
+      };
+
+      const handleClaimDaily = () => {
+        const todayStr = new Date().toDateString();
+        const streak = user.loginStreak || 1;
+        const rewards = [
+          { pts: 100, xp: 50 }, { pts: 150, xp: 75 }, { pts: 200, xp: 100 },
+          { pts: 300, xp: 150 }, { pts: 400, xp: 200 }, { pts: 500, xp: 250 }, { pts: 1000, xp: 500 }
+        ];
+        const r = rewards[(streak - 1) % 7] || rewards[0];
+        const nextXp = user.xp + r.xp;
+        const nextLevel = Math.max(1, Math.floor(nextXp / 200) + 1);
+
+        triggerConfetti();
+        if (nextLevel > user.level) {
+          setLevelUpModalData({ visible: true, level: nextLevel });
+        }
+
+        setUser(prev => ({
+          ...prev,
+          points: prev.points + r.pts,
+          xp: nextXp,
+          level: nextLevel,
+          loginStreak: prev.loginStreak + 1,
+          lastDailyClaim: todayStr
+        }));
+
+        setTimeout(() => setIsDailyRewardOpen(false), 800);
+      };
+
+      const handleResetData = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        setUser({
+          ...DEFAULT_USER,
+          username: 'NewGladiator',
+          points: 0,
+          xp: 0,
+          level: 1,
+          gamesPlayed: 0,
+          correctAnswers: 0,
+          totalAnswersAttempted: 0,
+          multiplayerWins: 0,
+          fastAnswers: 0,
+          perfectScores: 0,
+          categoriesPlayed: [],
+          dailyCompleted: 0
+        });
+        setCurrentScreen('home');
+      };
+
+      const todayStr = new Date().toDateString();
+      const dailyClaimedToday = user.lastDailyClaim === todayStr;
+
+      // Header progression stats
+      const currentLvlXp = (user.level - 1) * 200;
+      const progressInLevel = Math.max(0, user.xp - currentLvlXp);
+      const xpPercent = Math.min(100, Math.round((progressInLevel / 200) * 100));
+
+      const showNavbar = !['welcome', 'quiz', 'multiplayer_lobby'].includes(currentScreen);
+      const showHeader = !['welcome', 'quiz'].includes(currentScreen);
+
+      return (
+        <SafeAreaView className="min-h-screen bg-[#070913] text-slate-100 flex flex-col font-sans">
+          {/* HEADER */}
+          {showHeader && (
+            <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-[#0a0e1c]/90 backdrop-blur-md px-4 py-3 sm:px-6">
+              <div className="max-w-7xl mx-auto flex items-center justify-between">
+                <TouchableOpacity onPress={() => { sound.playClick(); setCurrentScreen('home'); }} className="flex items-center space-x-3 group">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-0.5 shadow-lg shadow-purple-600/30 group-hover:scale-105 transition-transform flex items-center justify-center">
+                    <div className="w-full h-full bg-[#0a0e1c] rounded-[10px] flex items-center justify-center text-xl">
+                      ⚡
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-lg font-black tracking-wider bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">QUIZ</span>
+                      <span className="text-lg font-black tracking-wider text-white">ARENA</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400">Battle of Wits</span>
+                  </div>
+                </TouchableOpacity>
+
+                <div className="flex items-center space-x-3 sm:space-x-5">
+                  {/* 3-LANGUAGE BUTTONS (UZ | RU | EN) */}
+                  <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 space-x-1 shadow-inner">
+                    {[
+                      { code: 'uz', flag: '🇺🇿', label: 'UZ' },
+                      { code: 'ru', flag: '🇷🇺', label: 'RU' },
+                      { code: 'en', flag: '🇬🇧', label: 'EN' }
+                    ].map(l => (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => { sound.playClick(); setLang(l.code); }}
+                        className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${lang === l.code ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30' : 'text-slate-400 hover:text-white'}`}
+                        title={l.label}
+                      >
+                        <span className="text-xs">{l.flag}</span>
+                        <span className="font-mono text-[11px]">{l.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-amber-500/30">
+                    <span className="text-amber-400 text-sm">🪙</span>
+                    <span className="text-xs font-bold text-amber-300 font-mono">{user.points.toLocaleString()} PTS</span>
+                  </div>
+
+                  <div onClick={() => { sound.playClick(); setCurrentScreen('profile'); }} className="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 cursor-pointer">
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center text-base">
+                        {user.avatar || '🥷'}
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 bg-cyan-500 text-slate-950 font-black text-[9px] px-1 rounded font-mono">
+                        L{user.level}
+                      </div>
+                    </div>
+                    <div className="hidden md:flex flex-col w-20">
+                      <div className="flex justify-between items-center text-[10px] mb-0.5">
+                        <span className="font-semibold text-slate-300 truncate max-w-[50px]">{user.username}</span>
+                        <span className="text-cyan-400 font-mono">{xpPercent}%</span>
+                      </div>
+                      <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-gradient-to-r from-purple-500 to-cyan-400 h-full transition-all duration-500" style={{ width: `${xpPercent}%` }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button type="button" onClick={toggleSound} title={soundEnabled ? 'Mute Sounds' : 'Unmute Sounds'} className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400">
+                    {soundEnabled ? (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
+                    )}
+                  </button>
+
+                  <button type="button" onClick={() => { sound.playClick(); setCurrentScreen('settings'); }} title="Settings" className={`p-2 rounded-xl border ${currentScreen === 'settings' ? 'bg-purple-600/30 border-purple-500 text-purple-300' : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:text-white'}`}>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </button>
+                </div>
+              </div>
+            </header>
+          )}
+
+          {/* MAIN SCREENS ROUTER */}
+          <main className="flex-1 w-full flex flex-col">
+            {currentScreen === 'welcome' && (
+              <WelcomeView onLogin={handleLogin} initialUsername={user.username} lang={lang} setLang={setLang} t={t} />
+            )}
+
+            {currentScreen === 'home' && (
+              <HomeView
+                user={user}
+                onNavigate={setCurrentScreen}
+                onStartQuiz={handleStartQuiz}
+                onOpenDailyReward={() => setIsDailyRewardOpen(true)}
+                dailyClaimedToday={dailyClaimedToday}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+
+            {currentScreen === 'categories' && (
+              <CategoriesView
+                onStartQuiz={handleStartQuiz}
+                onBack={() => setCurrentScreen('home')}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+
+            {currentScreen === 'game_modes' && (
+              <GameModesView
+                onNavigate={setCurrentScreen}
+                onStartQuiz={handleStartQuiz}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+
+            {currentScreen === 'quiz' && activeGameConfig && (
+              <QuizGameplayView
+                gameConfig={activeGameConfig}
+                user={user}
+                onFinishGame={handleFinishGame}
+                onQuit={() => setCurrentScreen('home')}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+
+            {currentScreen === 'multiplayer_lobby' && activeRoomData && (
+              <MultiplayerLobbyView
+                roomData={activeRoomData}
+                user={user}
+                onStartBattle={(cfg) => { setActiveGameConfig(cfg); setCurrentScreen('quiz'); }}
+                onLeaveLobby={() => setCurrentScreen('room_creation')}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+
+            {currentScreen === 'room_creation' && (
+              <RoomCreationView
+                user={user}
+                onEnterLobby={(data) => { setActiveRoomData(data); setCurrentScreen('multiplayer_lobby'); }}
+                onBack={() => setCurrentScreen('game_modes')}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+
+            {currentScreen === 'leaderboard' && (
+              <LeaderboardView user={user} lang={lang} setLang={setLang} t={t} />
+            )}
+
+            {currentScreen === 'profile' && (
+              <ProfileView
+                user={user}
+                onUpdateProfile={(updated) => setUser(p => ({ ...p, ...updated }))}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+
+            {currentScreen === 'results' && lastResultsData && (
+              <ResultsView
+                resultsData={lastResultsData}
+                user={user}
+                onPlayAgain={(cfg) => handleStartQuiz(cfg)}
+                onGoHome={() => setCurrentScreen('home')}
+                onViewLeaderboard={() => setCurrentScreen('leaderboard')}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+
+            {currentScreen === 'settings' && (
+              <SettingsView
+                soundEnabled={soundEnabled}
+                onToggleSound={toggleSound}
+                onResetData={handleResetData}
+                onBack={() => setCurrentScreen('home')}
+                lang={lang}
+                setLang={setLang}
+                t={t}
+              />
+            )}
+          </main>
+
+          {/* DOCK NAVBAR */}
+          {showNavbar && (
+            <NavbarView currentScreen={currentScreen} onNavigate={setCurrentScreen} t={t} />
+          )}
+
+          {/* MODALS */}
+          <DailyRewardModal
+            visible={isDailyRewardOpen}
+            streak={user.loginStreak || 1}
+            claimedToday={dailyClaimedToday}
+            onClose={() => setIsDailyRewardOpen(false)}
+            onClaim={handleClaimDaily}
+            lang={lang}
+            t={t}
+          />
+
+          <LevelUpModal
+            visible={levelUpModalData.visible}
+            level={levelUpModalData.level}
+            onClose={() => setLevelUpModalData({ visible: false, level: 1 })}
+            lang={lang}
+            t={t}
+          />
+        </SafeAreaView>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 1: WELCOME SCREEN
+    // ==========================================
+    function WelcomeView({ onLogin, initialUsername, lang, setLang, t }) {
+      const [name, setName] = useState(initialUsername || 'CyberWarrior');
+      const [avatar, setAvatar] = useState('🥷');
+      const [err, setErr] = useState('');
+
+      const handleSubmit = () => {
+        if (!name.trim()) { setErr('Enter a gladiator codename!'); return; }
+        sound.playVictory();
+        triggerConfetti();
+        onLogin({ username: name.trim(), avatar });
+      };
+
+      return (
+        <SafeAreaView className="justify-center items-center px-4 py-8 relative overflow-hidden bg-[#070913]">
+          <div className="w-full max-w-md z-10 flex flex-col items-center">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-1 shadow-2xl shadow-purple-600/40 animate-pulse mb-3 flex items-center justify-center">
+              <span className="text-4xl">⚡</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-black text-center">
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">QUIZ</span>{' '}
+              <span className="text-white">ARENA</span>
+            </h1>
+            <p className="text-xs font-bold uppercase tracking-widest text-cyan-400 mt-2 mb-6">Competitive Knowledge Platform</p>
+
+            <div className="w-full p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl">
+              <h2 className="text-xl font-bold text-white text-center mb-1">Create Gladiator Identity</h2>
+              <p className="text-xs text-slate-400 text-center mb-6">Choose your codename & warrior avatar</p>
+
+              <div className="mb-4">
+                <label className="block text-xs font-bold uppercase text-slate-300 mb-1.5">Warrior Codename</label>
+                <TextInput value={name} onChangeText={(t) => { setName(t); setErr(''); }} placeholder="Enter name..." className="w-full" />
+                {err && <span className="text-rose-400 text-xs font-semibold mt-1 block">{err}</span>}
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-xs font-bold uppercase text-slate-300 mb-2">Select Avatar</label>
+                <div className="grid grid-cols-6 gap-2">
+                  {AVATARS.map(av => (
+                    <button key={av.id} type="button" onClick={() => { sound.playClick(); setAvatar(av.icon); }} className={`h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${avatar === av.icon ? 'bg-gradient-to-br from-purple-600 to-cyan-500 scale-105 ring-2 ring-cyan-300' : 'bg-slate-800 border border-slate-700'}`}>
+                      {av.icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <TouchableOpacity onPress={handleSubmit} className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white font-black tracking-wider uppercase shadow-xl shadow-purple-600/30 text-center flex items-center justify-center space-x-2">
+                <span>ENTER THE ARENA</span>
+                <span>➔</span>
+              </TouchableOpacity>
+            </div>
+          </div>
+        </SafeAreaView>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 2: HOME DASHBOARD
+    // ==========================================
+    function HomeView({ user, onNavigate, onStartQuiz, onOpenDailyReward, dailyClaimedToday, lang = 'uz', setLang, t = {} }) {
+      const currentLvlXp = (user.level - 1) * 200;
+      const progressInLevel = Math.max(0, user.xp - currentLvlXp);
+      const xpPercent = Math.min(100, Math.round((progressInLevel / 200) * 100));
+      const title = getLevelTitle(user.level, lang);
+      const accuracy = user.totalAnswersAttempted > 0 ? Math.round((user.correctAnswers / user.totalAnswersAttempted) * 100) : 0;
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-7xl mx-auto w-full animate-fade-in">
+          {/* Gladiator Profile Hero */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-900/40 via-indigo-950/60 to-slate-900 border border-purple-500/30 p-6 sm:p-8 shadow-2xl mb-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex items-center space-x-5">
+                <div className="relative">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-1 shadow-xl shadow-purple-600/40">
+                    <div className="w-full h-full bg-[#0a0e1c] rounded-[14px] flex items-center justify-center text-4xl sm:text-5xl">
+                      {user.avatar || '🥷'}
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 px-2.5 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-xs font-black font-mono shadow-md">
+                    LVL {user.level}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-2xl sm:text-3xl font-black text-white">{user.username}</h2>
+                    <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                      {title}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 sm:hidden">{title}</p>
+                  <div className="w-48 sm:w-64 mt-3">
+                    <div className="flex justify-between items-center text-xs font-semibold mb-1">
+                      <span className="text-slate-300">{t.levelProgress || 'Level Progress'}</span>
+                      <span className="text-cyan-400 font-mono">{progressInLevel} / 200 XP</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                      <div className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 rounded-full" style={{ width: `${xpPercent}%` }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                {/* PROMINENT LANGUAGE SWITCHER BUTTONS DIRECTLY ON DASHBOARD */}
+                <div className="w-full sm:w-auto flex items-center justify-center space-x-1 bg-slate-950/90 border border-purple-500/40 rounded-2xl p-1.5 shadow-xl">
+                  {[
+                    { code: 'uz', flag: '🇺🇿', label: "O'zbek" },
+                    { code: 'ru', flag: '🇷🇺', label: "Русский" },
+                    { code: 'en', flag: '🇬🇧', label: "English" }
+                  ].map(l => (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => { sound.playClick(); setLang && setLang(l.code); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 ${lang === l.code ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/40 scale-105' : 'text-slate-400 hover:text-white'}`}
+                      title={l.label}
+                    >
+                      <span className="text-sm">{l.flag}</span>
+                      <span className="font-bold">{l.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center min-w-[90px]">
+                  <span className="text-xs text-slate-400 block">{t.statPoints || 'Points'}</span>
+                  <span className="text-lg font-black text-amber-300 font-mono">{user.points.toLocaleString()}</span>
+                </div>
+                <div className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center min-w-[90px]">
+                  <span className="text-xs text-slate-400 block">{t.statBattles || t.statGames || 'Battles'}</span>
+                  <span className="text-lg font-black text-white font-mono">{user.gamesPlayed}</span>
+                </div>
+                <div className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center min-w-[90px]">
+                  <span className="text-xs text-slate-400 block">{t.statAccuracy || 'Accuracy'}</span>
+                  <span className="text-lg font-black text-emerald-400 font-mono">{accuracy}%</span>
+                </div>
+                <TouchableOpacity onPress={() => { sound.playClick(); onNavigate('game_modes'); }} className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 text-white font-black tracking-wider uppercase shadow-xl shadow-cyan-500/25 flex items-center justify-center space-x-2">
+                  <span>{t.quickPlay || 'QUICK PLAY'}</span>
+                  <span>⚔️</span>
+                </TouchableOpacity>
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/30 flex flex-col justify-between shadow-xl">
+              <div>
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30 mb-2">
+                  🔥 {t.dailyMasterChallenge || 'Daily Master Challenge'}
+                </span>
+                <h3 className="text-xl font-black text-white">{t.dailyMultiQuiz || 'Daily Multi-Discipline Quiz'}</h3>
+                <p className="text-xs text-slate-300 mt-1">{t.dailyDesc || '5 curated questions. Complete today for a 2X Double XP bonus!'}</p>
+              </div>
+              <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-mono text-amber-400 font-bold">+300 PTS & +150 XP</span>
+                <TouchableOpacity onPress={() => { sound.playClick(); onStartQuiz({ mode: 'daily', category: 'general', difficulty: 'medium', title: t.dailyMasterChallenge || 'Daily Master Challenge' }); }} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs uppercase shadow-md hover:scale-105 active:scale-95 transition-all">
+                  {t.playChallenge || 'Play Challenge ➔'}
+                </TouchableOpacity>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-purple-950/40 via-slate-900 to-slate-900 border border-purple-500/30 flex flex-col justify-between shadow-xl">
+              <div>
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30 mb-2">
+                  🎁 {t.sevenDayRewards || '7-Day Arena Rewards'}
+                </span>
+                <h3 className="text-xl font-black text-white">{t.dailyLoginRewards || 'Daily Login Rewards'}</h3>
+                <p className="text-xs text-slate-300 mt-1">{t.dailyLoginDesc || '{t.dailyCalendarSub || "Claim escalating rewards each consecutive day you return to battle."}'}</p>
+              </div>
+              <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-bold text-purple-300">{(t.streakDay || 'Streak: Day')} {user.loginStreak || 1}</span>
+                <TouchableOpacity onPress={() => { sound.playClick(); onOpenDailyReward(); }} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider ${dailyClaimedToday ? 'bg-slate-800 text-slate-400 border border-slate-700' : 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-md'}`}>
+                  {dailyClaimedToday ? (t.claimedToday || 'Claimed Today ✓') : (t.claimReward || 'Claim Reward 🎁')}
+                </TouchableOpacity>
+              </div>
+            </div>
+          </div>
+
+          {/* Featured Categories (Top 4) */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xl font-black text-white tracking-wide">{t.featuredCategories || 'Featured Categories'}</h3>
+              <p className="text-xs text-slate-400">{t.jumpRightIn || 'Jump right into competitive quizzes'}</p>
+            </div>
+            <TouchableOpacity onPress={() => { sound.playClick(); onNavigate('categories'); }} className="text-xs font-bold text-cyan-400 hover:text-cyan-300">
+              {t.viewAll8 || 'View All 8 ➔'}
+            </TouchableOpacity>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            {CATEGORIES.slice(0, 4).map(cat => (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() => { sound.playClick(); onStartQuiz({ mode: 'single', category: cat.id, difficulty: 'medium', title: getCatName(cat, lang) }); }}
+                className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 hover:-translate-y-1 transition-all shadow-lg group"
+              >
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center text-2xl mb-3 shadow-md`}>
+                  {cat.icon}
+                </div>
+                <h4 className="text-sm font-black text-white group-hover:text-cyan-300 transition-colors">{getCatName(cat, lang)}</h4>
+                <span className="text-[11px] text-slate-400 block mt-1">{t.questionsTiers || '15 Questions • 3 Tiers'}</span>
+              </TouchableOpacity>
+            ))}
+          </div>
+
+          {/* Game Modes Quick Access */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-black text-white tracking-wide">{t.gameModes || 'Game Modes'}</h3>
+            <TouchableOpacity onPress={() => { sound.playClick(); onNavigate('game_modes'); }} className="text-xs font-bold text-cyan-400">
+              {t.allModes || 'All Modes ➔'}
+            </TouchableOpacity>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <TouchableOpacity onPress={() => { sound.playClick(); onNavigate('categories'); }} className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-purple-500/50 transition-all shadow-lg">
+              <span className="text-2xl mb-2 block">👤</span>
+              <h4 className="text-sm font-black text-white">{t.modeSingle || 'Single Player'}</h4>
+              <p className="text-xs text-slate-400 mt-1">{t.modeSingleDesc || 'Play solo across 8 categories with 3 difficulty tiers.'}</p>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { sound.playClick(); onNavigate('room_creation'); }} className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-cyan-500/50 transition-all shadow-lg">
+              <span className="text-2xl mb-2 block">⚔️</span>
+              <h4 className="text-sm font-black text-white">{t.modeMulti || 'Multiplayer 1v1'}</h4>
+              <p className="text-xs text-slate-400 mt-1">{t.modeMultiDesc || 'Create private rooms or duel friends synchronously.'}</p>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { sound.playClick(); onNavigate('game_modes'); }} className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-emerald-500/50 transition-all shadow-lg">
+              <span className="text-2xl mb-2 block">⚡</span>
+              <h4 className="text-sm font-black text-white">{t.modeQuick || 'Quick Match'}</h4>
+              <p className="text-xs text-slate-400 mt-1">{t.modeQuickDesc || 'Instant matchmaking against active arena fighters.'}</p>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { sound.playClick(); onStartQuiz({ mode: 'practice', category: 'general', difficulty: 'easy', title: t.modePractice || 'Practice Mode' }); }} className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/50 transition-all shadow-lg">
+              <span className="text-2xl mb-2 block">🧘</span>
+              <h4 className="text-sm font-black text-white">{t.modePractice || 'Practice Mode'}</h4>
+              <p className="text-xs text-slate-400 mt-1">{t.modePracticeDesc || 'Learn without timer stress and read explanations.'}</p>
+            </TouchableOpacity>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 3: CATEGORIES
+    // ==========================================
+    function CategoriesView({ onStartQuiz, onBack, lang = 'uz', t = {} }) {
+      const [diff, setDiff] = useState('medium');
+      const [query, setQuery] = useState('');
+
+      const filtered = CATEGORIES.filter(c => {
+        const cName = getCatName(c, lang).toLowerCase();
+        const cDesc = getCatDesc(c, lang).toLowerCase();
+        const q = query.toLowerCase();
+        return cName.includes(q) || cDesc.includes(q);
+      });
+
+      const tierLabels = {
+        easy: t.diffEasy || 'Easy',
+        medium: t.diffMedium || 'Medium',
+        hard: t.diffHard || 'Hard'
+      };
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-7xl mx-auto w-full animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-3xl font-black text-white">{t.categoriesHeader || 'Quiz Categories'}</h2>
+              <p className="text-sm text-slate-400 mt-0.5">{t.categoriesSubtitle || '8 disciplines with Easy, Medium, and Hard tiers'}</p>
+            </div>
+            <div className="flex items-center space-x-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
+              <span className="text-[11px] font-bold text-slate-400 uppercase px-2">{t.tierLabel || 'Tier:'}</span>
+              {['easy', 'medium', 'hard'].map(d => (
+                <button key={d} type="button" onClick={() => { sound.playClick(); setDiff(d); }} className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider ${diff === d ? 'bg-cyan-500 text-slate-950 font-bold shadow' : 'text-slate-400'}`}>
+                  {tierLabels[d] || d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <TextInput value={query} onChangeText={setQuery} placeholder={t.searchCategory || '🔍 Filter categories...'} className="w-full text-sm" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {filtered.map(cat => (
+              <div key={cat.id} className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 transition-all flex flex-col justify-between shadow-xl group">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center text-3xl shadow-lg`}>
+                      {cat.icon}
+                    </div>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-cyan-300 border border-slate-700 uppercase">
+                      {tierLabels[diff] || diff}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-black text-white group-hover:text-cyan-300 transition-colors">{getCatName(cat, lang)}</h3>
+                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">{getCatDesc(cat, lang)}</p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">{t.questionsRound || '5 Questions Round'}</span>
+                  <TouchableOpacity onPress={() => { sound.playClick(); onStartQuiz({ mode: 'single', category: cat.id, difficulty: diff, title: getCatName(cat, lang) }); }} className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white text-xs font-black uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all">
+                    {t.playChallenge || 'Play ➔'}
+                  </TouchableOpacity>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 4: GAME MODES
+    // ==========================================
+    function GameModesView({ onNavigate, onStartQuiz, lang = 'uz', t = {} }) {
+      const [isSearching, setIsSearching] = useState(false);
+      const [found, setFound] = useState(false);
+      const [opp, setOpp] = useState(null);
+
+      const triggerQuickMatch = () => {
+        sound.playClick();
+        setIsSearching(true);
+        setFound(false);
+
+        const opps = [
+          { name: 'Vortex_Nova', avatar: '🧙‍♂️', level: 9, title: 'Mastermind' },
+          { name: 'Blaze_Ace', avatar: '⚡', level: 7, title: 'Grandmaster' },
+          { name: 'NeonValkyrie', avatar: '👸', level: 8, title: 'Trivia Titan' }
+        ];
+        const r = opps[Math.floor(Math.random() * opps.length)];
+
+        setTimeout(() => {
+          sound.playLevelUp();
+          setOpp(r);
+          setFound(true);
+          setTimeout(() => {
+            setIsSearching(false);
+            onStartQuiz({
+              mode: 'multiplayer',
+              category: 'technology',
+              difficulty: 'medium',
+              title: t.modeQuick || 'Quick Match 1v1',
+              opponent: r,
+              roomCode: 'QM-' + Math.floor(1000 + Math.random() * 9000)
+            });
+          }, 1500);
+        }, 2000);
+      };
+
+      const modes = [
+        { id: 'single', title: t.modeSingle || 'Single Player', badge: 'SOLO LADDER', icon: '👤', desc: t.modeSingleDesc || 'Climb alone across 8 categories with 3 difficulty tiers.', btn: t.selectCategoryAction || 'Select Category', action: () => onNavigate('categories') },
+        { id: 'multi', title: t.modeMulti || 'Multiplayer 1v1', badge: 'CUSTOM ROOMS', icon: '⚔️', desc: t.modeMultiDesc || 'Generate a 6-digit room code or join a friend in real-time combat.', btn: t.hostOrJoin || 'Host or Join Room', action: () => onNavigate('room_creation') },
+        { id: 'quick', title: t.modeQuick || 'Quick Match', badge: 'INSTANT MATCHMAKING', icon: '⚡', desc: t.modeQuickDesc || 'Match against an active arena gladiator in seconds.', btn: t.findOpponent || 'Find Opponent', action: triggerQuickMatch },
+        { id: 'practice', title: t.modePractice || 'Practice Mode', badge: 'UNTIMED & RELAXED', icon: '🧘', desc: t.modePracticeDesc || 'No ticking clock. Perfect for reviewing facts and learning.', btn: t.startPractice || 'Start Practice', action: () => onStartQuiz({ mode: 'practice', category: 'general', difficulty: 'easy', title: t.modePractice || 'Practice Mode' }) },
+        { id: 'daily', title: t.modeDaily || 'Daily Challenge', badge: '2X BONUS XP', icon: '🎯', desc: t.modeDailyDesc || 'Curated 5-question multi-discipline exam once per day.', btn: t.acceptChallenge || 'Accept Challenge', action: () => onStartQuiz({ mode: 'daily', category: 'general', difficulty: 'medium', title: t.dailyMasterChallenge || 'Daily Master Challenge' }) }
+      ];
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-7xl mx-auto w-full animate-fade-in">
+          <h2 className="text-3xl font-black text-white mb-1">{t.selectArenaMode || 'Select Game Mode'}</h2>
+          <p className="text-sm text-slate-400 mb-8">{t.selectArenaModeDesc || 'Choose your battle format across solo and live multiplayer'}</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {modes.map(m => (
+              <div key={m.id} className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-purple-500/40 transition-all flex flex-col justify-between shadow-xl">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-4xl">{m.icon}</span>
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-slate-800 text-purple-300 border border-slate-700">
+                      {m.badge}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-black text-white">{m.title}</h3>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">{m.desc}</p>
+                </div>
+                <div className="mt-6 pt-4 border-t border-slate-800">
+                  <TouchableOpacity onPress={m.action} className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white font-black text-xs uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all text-center">
+                    {m.btn} ➔
+                  </TouchableOpacity>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick Match Modal */}
+          <Modal visible={isSearching} onRequestClose={() => setIsSearching(false)}>
+            <div className="p-8 rounded-3xl bg-slate-900 border border-cyan-500/50 shadow-2xl text-center">
+              {!found ? (
+                <div>
+                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-3xl mx-auto mb-4 animate-spin">
+                    ⚡
+                  </div>
+                  <h3 className="text-xl font-black text-white">{t.searchingOpponent || 'Searching for an active arena opponent...'}</h3>
+                  <p className="text-xs text-slate-400 mt-2">Connecting to Arena Lobby</p>
+                </div>
+              ) : (
+                <div className="animate-fade-in">
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-3xl mx-auto mb-4">
+                    ✓
+                  </div>
+                  <h3 className="text-xl font-black text-white">{t.matchFound || 'Opponent Found!'}</h3>
+                  <p className="text-sm font-bold text-cyan-300 mt-2">{opp?.name} ({opp?.title})</p>
+                </div>
+              )}
+            </div>
+          </Modal>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 5: QUIZ GAMEPLAY (WITH LIFELINES & KEYBOARD CONTROLS)
+    // ==========================================
+    function QuizGameplayView({ gameConfig, user, onFinishGame, onQuit, lang = "uz", t = {} }) {
+      const { mode = 'single', category = 'general', difficulty = 'medium', opponent = null, title = 'Arena Quiz' } = gameConfig;
+
+      const questionsList = useMemo(() => {
+        if (mode === 'daily') return [...DAILY_QUESTIONS];
+        const catQ = (QUESTIONS_BANK[category] && QUESTIONS_BANK[category][difficulty]) || QUESTIONS_BANK.general.medium;
+        return [...catQ].slice(0, 5);
+      }, [mode, category, difficulty]);
+
+      const [index, setIndex] = useState(0);
+      const [selected, setSelected] = useState(null);
+      const [answered, setAnswered] = useState(false);
+      const [timer, setTimer] = useState(30);
+      const [userScore, setUserScore] = useState(0);
+      const [opponentScore, setOpponentScore] = useState(0);
+      const [opponentState, setOpponentState] = useState('thinking');
+      const [streak, setStreak] = useState(0);
+      const [log, setLog] = useState([]);
+
+      // Lifelines state
+      const [lifelines, setLifelines] = useState({ fiftyFifty: true, timeFreeze: true, hint: true });
+      const [hiddenOptions, setHiddenOptions] = useState([]);
+      const [activeHint, setActiveHint] = useState(null);
+
+      const timerRef = useRef(null);
+      const nextRef = useRef(null);
+
+      const currentQ = questionsList[index] || { question: '', options: [], correctIndex: 0, explanation: '', hint: '' };
+      const isPractice = mode === 'practice';
+      const total = questionsList.length;
+
+      // Timer Effect
+      useEffect(() => {
+        if (isPractice || answered) return;
+
+        setTimer(30);
+        setOpponentState('thinking');
+        setHiddenOptions([]);
+        setActiveHint(null);
+
+        let oppTimer = null;
+        if (opponent) {
+          const delay = Math.floor(Math.random() * 6000) + 4000;
+          oppTimer = setTimeout(() => {
+            setOpponentState('answered');
+            if (Math.random() < 0.75) {
+              setOpponentScore(prev => prev + 120);
+            }
+          }, delay);
+        }
+
+        timerRef.current = setInterval(() => {
+          setTimer(prev => {
+            if (prev <= 1) {
+              clearInterval(timerRef.current);
+              handleTimeout();
+              return 0;
+            }
+            if (prev <= 6) sound.playTick();
+            return prev - 1;
+          });
+        }, 1000);
+
+        return () => {
+          if (timerRef.current) clearInterval(timerRef.current);
+          if (oppTimer) clearTimeout(oppTimer);
+          if (nextRef.current) clearTimeout(nextRef.current);
+        };
+      }, [index, answered, isPractice, opponent]);
+
+      // Keyboard Controls (1-4, A-D, Enter, Space)
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (answered) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              advance();
+            }
+            return;
+          }
+
+          const key = e.key.toUpperCase();
+          if (key === 'A' || key === '1') handleChoose(0);
+          else if (key === 'B' || key === '2') handleChoose(1);
+          else if (key === 'C' || key === '3') handleChoose(2);
+          else if (key === 'D' || key === '4') handleChoose(3);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [answered, index, hiddenOptions]);
+
+      const handleTimeout = () => {
+        if (answered) return;
+        sound.playWrong();
+        setAnswered(true);
+        setSelected(-1);
+        setStreak(0);
+        setLog(prev => [...prev, { question: getTxt(currentQ.question, lang), selected: -1, correct: currentQ.correctIndex, isCorrect: false, timeTaken: 30, pointsAwarded: 0 }]);
+        nextRef.current = setTimeout(advance, 2200);
+      };
+
+      const handleChoose = (idx) => {
+        if (answered || hiddenOptions.includes(idx)) return;
+        if (timerRef.current) clearInterval(timerRef.current);
+        setAnswered(true);
+        setSelected(idx);
+
+        const isCorrect = idx === currentQ.correctIndex;
+        const timeUsed = 30 - timer;
+        let pts = 0;
+
+        if (isCorrect) {
+          sound.playCorrect();
+          const nextStreak = streak + 1;
+          setStreak(nextStreak);
+          const speed = isPractice ? 0 : timer * 2;
+          const streakBonus = nextStreak > 1 ? (nextStreak - 1) * 20 : 0;
+          const mult = difficulty === 'hard' ? 2 : difficulty === 'medium' ? 1.5 : 1;
+          pts = Math.round((100 + speed + streakBonus) * mult);
+          setUserScore(prev => prev + pts);
+        } else {
+          sound.playWrong();
+          setStreak(0);
+        }
+
+        setLog(prev => [...prev, { question: getTxt(currentQ.question, lang), selected: idx, correct: currentQ.correctIndex, isCorrect, timeTaken: timeUsed, pointsAwarded: pts }]);
+        nextRef.current = setTimeout(advance, 2200);
+      };
+
+      const advance = () => {
+        if (nextRef.current) clearTimeout(nextRef.current);
+        if (index + 1 < total) {
+          setIndex(prev => prev + 1);
+          setSelected(null);
+          setAnswered(false);
+          setTimer(30);
+          setHiddenOptions([]);
+          setActiveHint(null);
+        } else {
+          onFinishGame({ userScore, opponentScore, totalQuestions: total, answersLog: log, gameConfig, opponent });
+        }
+      };
+
+      // Lifelines implementations
+      const useFiftyFifty = () => {
+        if (!lifelines.fiftyFifty || answered) return;
+        sound.playPowerUp();
+        setLifelines(prev => ({ ...prev, fiftyFifty: false }));
+        const wrongIndices = [0, 1, 2, 3].filter(i => i !== currentQ.correctIndex);
+        const shuffledWrong = wrongIndices.sort(() => 0.5 - Math.random());
+        setHiddenOptions(shuffledWrong.slice(0, 2));
+      };
+
+      const useTimeFreeze = () => {
+        if (!lifelines.timeFreeze || answered || isPractice) return;
+        sound.playPowerUp();
+        setLifelines(prev => ({ ...prev, timeFreeze: false }));
+        setTimer(prev => prev + 15);
+      };
+
+      const useHint = () => {
+        if (!lifelines.hint || answered) return;
+        sound.playPowerUp();
+        setLifelines(prev => ({ ...prev, hint: false }));
+        setActiveHint(currentQ.hint || 'Carefully re-read the keywords in the query!');
+      };
+
+      const timerColor = timer <= 5 ? '#f43f5e' : timer <= 10 ? '#f59e0b' : '#06b6d4';
+
+      return (
+        <SafeAreaView className="min-h-screen px-4 py-4 sm:px-6 max-w-4xl mx-auto w-full justify-between pb-8">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <button type="button" onClick={() => { sound.playClick(); if (window.confirm('Quit this quiz?')) onQuit(); }} className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-400 hover:text-white">
+                {t.quitBtn || "✕ Quit"}
+              </button>
+              <div className="flex items-center space-x-2">
+                <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">{title}</span>
+                <span className="text-xs font-mono font-bold text-slate-400">Q {index + 1} / {total}</span>
+              </div>
+              <div className="flex items-center space-x-2 font-mono font-black text-amber-300 text-sm bg-slate-900 px-3 py-1.5 rounded-xl border border-amber-500/30">
+                <span>🪙</span>
+                <span>{userScore} PTS</span>
+              </div>
+            </div>
+
+            {/* Live Opponent Status HUD */}
+            {opponent && (
+              <div className="mb-4 p-3 rounded-2xl bg-slate-900/90 border border-cyan-500/30 flex items-center justify-between shadow-lg">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-base">{user.avatar}</div>
+                  <div>
+                    <span className="text-xs font-black text-white block">{user.username} (You)</span>
+                    <span className="text-[11px] font-mono text-cyan-300 font-bold">{userScore} PTS</span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-xs font-black text-slate-400">VS</span>
+                <div className="flex items-center space-x-2.5 text-right">
+                  <div>
+                    <span className="text-xs font-black text-white block">{opponent.name} {opponentState === 'thinking' ? '⏳' : '✓'}</span>
+                    <span className="text-[11px] font-mono text-amber-400 font-bold">{opponentScore} PTS</span>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg bg-cyan-600 flex items-center justify-center text-base">{opponent.avatar}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Round Bar */}
+            <div className="w-full bg-slate-800/80 h-1.5 rounded-full overflow-hidden mb-4">
+              <div className="bg-gradient-to-r from-purple-500 via-indigo-400 to-cyan-400 h-full transition-all duration-300" style={{ width: `${((index + 1) / total) * 100}%` }} />
+            </div>
+
+            {/* Timer & Arena Lifelines Controls */}
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div className="flex items-center space-x-2">
+                {streak > 1 ? (
+                  <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-orange-500/20 text-orange-400 border border-orange-500/40 animate-pulse">
+                    🔥 {streak}x Combo Streak!
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-500">Standard Multiplier</span>
+                )}
+              </div>
+
+              {/* In-Game Lifelines (Power-Ups) */}
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  disabled={!lifelines.fiftyFifty || answered}
+                  onClick={useFiftyFifty}
+                  title="50:50 (Eliminate 2 wrong answers)"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black border transition-all ${
+                    lifelines.fiftyFifty && !answered
+                      ? 'bg-purple-950/80 border-purple-500 text-purple-300 hover:scale-105 active:scale-95'
+                      : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
+                  }`}
+                >
+                  ⚡ 50:50
+                </button>
+
+                {!isPractice && (
+                  <button
+                    type="button"
+                    disabled={!lifelines.timeFreeze || answered}
+                    onClick={useTimeFreeze}
+                    title="Time Freeze (+15s timer boost)"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-black border transition-all ${
+                      lifelines.timeFreeze && !answered
+                        ? 'bg-cyan-950/80 border-cyan-500 text-cyan-300 hover:scale-105 active:scale-95'
+                        : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
+                    }`}
+                  >
+                    ⏱️ {t.lifelineFreeze || "+15s"}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={!lifelines.hint || answered}
+                  onClick={useHint}
+                  title="Hint / Clue"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black border transition-all ${
+                    lifelines.hint && !answered
+                      ? 'bg-amber-950/80 border-amber-500 text-amber-300 hover:scale-105 active:scale-95'
+                      : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
+                  }`}
+                >
+                  💡 {t.lifelineHint || "Hint"}
+                </button>
+              </div>
+
+              {!isPractice && (
+                <div className="flex items-center space-x-2">
+                  <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono font-black text-xs" style={{ borderColor: timerColor, color: timerColor }}>
+                    {timer}
+                  </div>
+                  <span className="text-xs font-bold text-slate-400">sec</span>
+                </div>
+              )}
+            </div>
+
+            {/* Active Hint Banner */}
+            {activeHint && (
+              <div className="mb-3 p-3 rounded-2xl bg-amber-950/60 border border-amber-500/40 text-xs text-amber-200 flex items-center space-x-2 animate-fade-in">
+                <span>💡</span>
+                <span><strong>Tactical Clue:</strong> {activeHint}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Question Card */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl my-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-cyan-400 block mb-2">{(t.categoriesHeader || "Category")}: {getCatName(category, lang).toUpperCase()}</span>
+            <h2 className="text-xl sm:text-2xl font-black text-white leading-relaxed min-h-[64px] flex items-center">{getTxt(currentQ.question, lang)}</h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-8">
+              {((Array.isArray(currentQ.options) ? currentQ.options : (currentQ.options && (currentQ.options[lang] || currentQ.options.uz || currentQ.options.en))) || []).map((opt, idx) => {
+                const letter = ['A', 'B', 'C', 'D'][idx];
+                const isCorrect = idx === currentQ.correctIndex;
+                const isSel = selected === idx;
+                const isHidden = hiddenOptions.includes(idx);
+
+                let btnClass = 'bg-slate-800/80 border-slate-700/80 text-white hover:border-cyan-500/60';
+                let badgeClass = 'bg-slate-700 text-slate-300';
+
+                if (isHidden) {
+                  btnClass = 'opacity-20 border-slate-800 pointer-events-none';
+                }
+
+                if (answered) {
+                  if (isCorrect) {
+                    btnClass = 'bg-emerald-950/90 border-emerald-400 text-emerald-100 ring-2 ring-emerald-400/50 shadow-lg';
+                    badgeClass = 'bg-emerald-500 text-slate-950 font-black';
+                  } else if (isSel && !isCorrect) {
+                    btnClass = 'bg-rose-950/90 border-rose-500 text-rose-100 ring-2 ring-rose-500/50 shadow-lg';
+                    badgeClass = 'bg-rose-500 text-white font-black';
+                  } else {
+                    btnClass = 'bg-slate-900/40 border-slate-800/60 text-slate-500 opacity-60';
+                  }
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={answered || isHidden}
+                    onClick={() => handleChoose(idx)}
+                    className={`flex items-center p-4 rounded-2xl border text-left font-bold transition-all duration-200 active:scale-98 relative ${btnClass}`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black mr-3 flex-shrink-0 ${badgeClass}`}>
+                      {answered && isCorrect ? '✓' : answered && isSel && !isCorrect ? '✕' : letter}
+                    </div>
+                    <span className="text-sm sm:text-base leading-snug flex-1">{opt}</span>
+                    <span className="hidden sm:inline-block text-[10px] text-slate-500 font-mono font-bold ml-2">[{letter}]</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {answered && (
+              <div className="mt-6 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 animate-fade-in flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <span className={`text-xs font-black uppercase ${selected === currentQ.correctIndex ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {selected === currentQ.correctIndex ? '★ Correct Answer!' : '✕ Incorrect'}
+                  </span>
+                  <p className="text-xs text-slate-300 mt-1">{currentQ.explanation}</p>
+                </div>
+                <button type="button" onClick={advance} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold text-xs uppercase shadow-md flex-shrink-0 self-end sm:self-center">
+                  Next ➔ [Enter]
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="text-center text-xs text-slate-500 font-medium">
+            Keyboard shortcuts: Press [1, 2, 3, 4] or [A, B, C, D] to answer immediately
+          </div>
+        </SafeAreaView>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 6: MULTIPLAYER LOBBY
+    // ==========================================
+    function MultiplayerLobbyView({ roomData, user, onStartBattle, onLeaveLobby, lang = "uz", t = {} }) {
+      const [copied, setCopied] = useState(false);
+      const [challengerJoined, setChallengerJoined] = useState(
+        !roomData.isHost || (roomData.guestPlayer && roomData.guestPlayer.name !== 'Waiting for challenger...')
+      );
+      const [guestPlayer, setGuestPlayer] = useState(
+        roomData.guestPlayer || { name: 'Waiting for challenger...', avatar: '⏳', level: '?', isReady: false }
+      );
+
+      const catObj = CATEGORIES.find(c => c.id === roomData.category) || CATEGORIES[0];
+
+      useEffect(() => {
+        let t = null;
+        if (roomData.isHost && !challengerJoined) {
+          t = setTimeout(() => {
+            sound.playLevelUp();
+            setChallengerJoined(true);
+            setGuestPlayer({ name: 'Valkyrie_Queen', avatar: '👸', level: 9, isReady: true });
+          }, 3500);
+        }
+        return () => { if (t) clearTimeout(t); };
+      }, [roomData.isHost, challengerJoined]);
+
+      const copyCode = () => {
+        sound.playClick();
+        if (navigator.clipboard) navigator.clipboard.writeText(roomData.roomCode);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-4xl mx-auto w-full animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase">{t.mpTitle || "Multiplayer Lobby"}</span>
+              <h2 className="text-3xl font-black text-white tracking-wide mt-1">{t.roomChamberTitle || "Arena Waiting Chamber"}</h2>
+            </div>
+            <button type="button" onClick={() => { sound.playClick(); onLeaveLobby(); }} className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300">
+              Leave Lobby
+            </button>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold uppercase text-slate-400">{t.shareCodeNotice || "Share this Room Code with your rival"}</span>
+              <div className="text-3xl sm:text-4xl font-black tracking-widest text-cyan-400 font-mono mt-1">{roomData.roomCode}</div>
+              <span className="text-xs text-slate-500 mt-1 block">Category: <strong className="text-white">{catObj.name}</strong> • Tier: <strong className="text-cyan-300 uppercase">{roomData.difficulty}</strong></span>
+            </div>
+            <button type="button" onClick={copyCode} className="px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 font-bold text-xs uppercase">
+              {copied ? '✓ Copied!' : '📋 Copy Room Code'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-purple-500/40 shadow-xl">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">Host</span>
+              <div className="flex items-center space-x-4 my-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-3xl">{roomData.hostPlayer?.avatar || user.avatar}</div>
+                <div>
+                  <h3 className="text-xl font-black text-white">{roomData.hostPlayer?.name || user.username}</h3>
+                  <span className="text-xs text-purple-400 font-mono font-bold">Level {roomData.hostPlayer?.level || user.level}</span>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-xs">
+                <span className="text-slate-400">Status</span>
+                <span className="text-emerald-400 font-bold">✓ READY FOR COMBAT</span>
+              </div>
+            </div>
+
+            <div className={`p-6 rounded-3xl bg-slate-900/80 border shadow-xl ${challengerJoined ? 'border-cyan-500/40' : 'border-slate-800 border-dashed'}`}>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Challenger</span>
+              {challengerJoined ? (
+                <div>
+                  <div className="flex items-center space-x-4 my-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-3xl">{guestPlayer.avatar}</div>
+                    <div>
+                      <h3 className="text-xl font-black text-white">{guestPlayer.name}</h3>
+                      <span className="text-xs text-cyan-400 font-mono font-bold">Level {guestPlayer.level}</span>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Status</span>
+                    <span className="text-emerald-400 font-bold">✓ CONNECTED & READY</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-6 text-center">
+                  <ActivityIndicator size="small" color="#06b6d4" className="mb-2" />
+                  <span className="text-sm font-bold text-slate-300 block">Waiting for challenger to join...</span>
+                  <button type="button" onClick={() => { sound.playLevelUp(); setChallengerJoined(true); setGuestPlayer({ name: 'Valkyrie_Queen', avatar: '👸', level: 9, isReady: true }); }} className="mt-4 px-4 py-2 rounded-xl bg-slate-800 text-cyan-300 text-xs font-bold">
+                    Simulate Instant Join
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <TouchableOpacity disabled={!challengerJoined} onPress={() => { sound.playVictory(); onStartBattle({ mode: 'multiplayer', category: roomData.category, difficulty: roomData.difficulty, title: `${catObj.name} 1v1 Battle`, opponent: roomData.isHost ? guestPlayer : roomData.hostPlayer, roomCode: roomData.roomCode }); }} className={`w-full max-w-md py-4 rounded-2xl text-white font-black tracking-wider uppercase shadow-xl text-center ${challengerJoined ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:opacity-95' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>
+              START MULTIPLAYER MATCH ⚔️
+            </TouchableOpacity>
+            <div className="mt-3 text-center text-xs text-slate-500">Local & Peer Demonstration: Real-time turn synchronizer active.</div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 7: ROOM CREATION
+    // ==========================================
+    function RoomCreationView({ user, onEnterLobby, onBack, lang = "uz", t = {} }) {
+      const [tab, setTab] = useState('create');
+      const [cat, setCat] = useState('technology');
+      const [diff, setDiff] = useState('medium');
+      const [code, setCode] = useState('');
+      const [err, setErr] = useState('');
+
+      const handleCreate = () => {
+        sound.playClick();
+        const rand = 'ARENA-' + Math.floor(1000 + Math.random() * 9000);
+        onEnterLobby({
+          roomCode: rand,
+          isHost: true,
+          category: cat,
+          difficulty: diff,
+          hostPlayer: { name: user.username, avatar: user.avatar, level: user.level, isReady: true },
+          guestPlayer: { name: 'Waiting for challenger...', avatar: '⏳', level: '?', isReady: false }
+        });
+      };
+
+      const handleJoin = (targetCode) => {
+        sound.playClick();
+        const c = (targetCode || code).trim().toUpperCase();
+        if (!c) { setErr('Enter a room code!'); return; }
+        onEnterLobby({
+          roomCode: c,
+          isHost: false,
+          category: 'science',
+          difficulty: 'medium',
+          hostPlayer: { name: 'CyberGladiator_X', avatar: '🥷', level: 8, isReady: true },
+          guestPlayer: { name: user.username, avatar: user.avatar, level: user.level, isReady: true }
+        });
+      };
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-3xl mx-auto w-full animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-black text-white">Multiplayer Arena</h2>
+            <button type="button" onClick={() => { sound.playClick(); onBack(); }} className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300">✕ Back</button>
+          </div>
+
+          <div className="flex rounded-2xl bg-slate-900 p-1.5 border border-slate-800 mb-6">
+            <button type="button" onClick={() => { sound.playClick(); setTab('create'); }} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase ${tab === 'create' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow' : 'text-slate-400'}`}>Create Room (Host)</button>
+            <button type="button" onClick={() => { sound.playClick(); setTab('join'); }} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase ${tab === 'join' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow' : 'text-slate-400'}`}>Join Room (Guest)</button>
+          </div>
+
+          <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl">
+            {tab === 'create' ? (
+              <div>
+                <h3 className="text-lg font-bold text-white mb-2">Configure Room Rules</h3>
+                <div className="mb-6">
+                  <label className="block text-xs font-bold uppercase text-slate-300 mb-2">Category</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {CATEGORIES.map(c => (
+                      <button key={c.id} type="button" onClick={() => { sound.playClick(); setCat(c.id); }} className={`p-2.5 rounded-xl border text-left ${cat === c.id ? 'bg-purple-950 border-purple-500 text-white ring-1 ring-purple-400' : 'bg-slate-800/60 border-slate-700 text-slate-400'}`}>
+                        <span className="text-base block">{c.icon}</span>
+                        <span className="text-xs font-bold block truncate">{c.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-xs font-bold uppercase text-slate-300 mb-2">Difficulty</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {['easy', 'medium', 'hard'].map(d => (
+                      <button key={d} type="button" onClick={() => { sound.playClick(); setDiff(d); }} className={`py-2 rounded-xl border text-xs font-black uppercase ${diff === d ? 'bg-cyan-950 border-cyan-400 text-cyan-300 ring-1 ring-cyan-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>{d}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <TouchableOpacity onPress={handleCreate} className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white font-black tracking-wider uppercase text-center shadow-xl">
+                  GENERATE ROOM & ENTER LOBBY ➔
+                </TouchableOpacity>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-lg font-bold text-white mb-2">Connect to Arena Room</h3>
+                <p className="text-xs text-slate-400 mb-4">Enter room code provided by host</p>
+                <TextInput value={code} onChangeText={(t) => { setCode(t); setErr(''); }} placeholder="e.g. ARENA-9842" className="w-full uppercase font-mono tracking-widest text-center text-lg py-3.5 font-bold mb-2" />
+                {err && <span className="text-rose-400 text-xs font-semibold mb-4 block text-center">{err}</span>}
+                <TouchableOpacity onPress={() => handleJoin()} className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-black uppercase text-center shadow-xl mb-4">
+                  CONNECT TO ROOM ➔
+                </TouchableOpacity>
+                <div className="text-center pt-2">
+                  <button type="button" onClick={() => handleJoin('ARENA-7777')} className="text-xs text-cyan-400 underline font-mono">Join Demo Room: ARENA-7777</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 8: LEADERBOARD
+    // ==========================================
+    function LeaderboardView({ user, lang = "uz", t = {} }) {
+      const [tab, setTab] = useState('global');
+      const list = LEADERBOARDS[tab] || LEADERBOARDS.global;
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-5xl mx-auto w-full animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-3xl font-black text-white">Arena Leaderboards</h2>
+              <p className="text-sm text-slate-400">Competitive global rankings</p>
+            </div>
+            <div className="flex rounded-2xl bg-slate-900 p-1.5 border border-slate-800">
+              {['global', 'weekly', 'monthly'].map(t => (
+                <button key={t} type="button" onClick={() => { sound.playClick(); setTab(t); }} className={`px-4 py-2 rounded-xl text-xs font-black uppercase ${tab === t ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow' : 'text-slate-400'}`}>
+                  {t === 'global' ? 'All-Time' : t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Top 3 Podium */}
+          <div className="grid grid-cols-3 gap-3 mb-8 items-end max-w-lg mx-auto pt-4">
+            {list[1] && (
+              <div className="flex flex-col items-center">
+                <span className="text-3xl mb-1">{list[1].avatar}</span>
+                <span className="text-xs font-black text-white truncate max-w-[80px]">{list[1].username}</span>
+                <span className="text-xs font-mono text-slate-400">{list[1].points}</span>
+                <div className="w-full h-20 bg-slate-800/80 rounded-t-2xl border-t-2 border-slate-400 mt-2 flex items-center justify-center text-xl font-bold">🥈</div>
+              </div>
+            )}
+            {list[0] && (
+              <div className="flex flex-col items-center">
+                <span className="text-4xl mb-1">{list[0].avatar}</span>
+                <span className="text-xs sm:text-sm font-black text-amber-300 truncate max-w-[90px]">{list[0].username}</span>
+                <span className="text-xs font-mono text-amber-400 font-bold">{list[0].points}</span>
+                <div className="w-full h-28 bg-amber-950/60 rounded-t-2xl border-t-2 border-amber-400 mt-2 flex items-center justify-center text-2xl font-bold">🥇</div>
+              </div>
+            )}
+            {list[2] && (
+              <div className="flex flex-col items-center">
+                <span className="text-3xl mb-1">{list[2].avatar}</span>
+                <span className="text-xs font-black text-white truncate max-w-[80px]">{list[2].username}</span>
+                <span className="text-xs font-mono text-amber-600">{list[2].points}</span>
+                <div className="w-full h-16 bg-amber-950/40 rounded-t-2xl border-t-2 border-amber-700 mt-2 flex items-center justify-center text-xl font-bold">🥉</div>
+              </div>
+            )}
+          </div>
+
+          {/* User Position Banner */}
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-purple-950/70 via-slate-900 to-cyan-950/70 border border-cyan-500/40 shadow-xl flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl">{user.avatar}</span>
+              <div>
+                <span className="text-xs font-bold text-white block">{user.username} (You)</span>
+                <span className="text-[11px] text-slate-400">Level {user.level} Gladiator</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-sm font-mono font-black text-amber-300 block">{user.points.toLocaleString()} PTS</span>
+              <span className="text-[10px] text-emerald-400 font-bold">Rank #4</span>
+            </div>
+          </div>
+
+          <div className="rounded-3xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-xl divide-y divide-slate-800">
+            {list.map(p => (
+              <div key={p.rank} className="p-4 flex items-center justify-between hover:bg-slate-800/40">
+                <div className="flex items-center space-x-3">
+                  <span className="font-mono font-bold text-slate-400 w-8 text-center">#{p.rank}</span>
+                  <span className="text-2xl">{p.avatar}</span>
+                  <div>
+                    <span className="font-bold text-white block">{p.username}</span>
+                    <span className="text-[10px] text-slate-400">Level {p.level} • {p.badge}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono font-black text-amber-300 text-sm block">{p.points.toLocaleString()} PTS</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">{p.winRate} Win Rate</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 9: USER PROFILE (WITH CATEGORY MASTERY)
+    // ==========================================
+    function ProfileView({ user, onUpdateProfile, lang = "uz", t = {} }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const [name, setName] = useState(user.username);
+      const [av, setAv] = useState(user.avatar || '🥷');
+
+      const title = LEVEL_TITLES[Math.min(user.level - 1, LEVEL_TITLES.length - 1)] || 'Arena Legend';
+      const currentLvlXp = (user.level - 1) * 200;
+      const progressInLevel = Math.max(0, user.xp - currentLvlXp);
+      const xpPercent = Math.min(100, Math.round((progressInLevel / 200) * 100));
+      const accuracy = user.totalAnswersAttempted > 0 ? Math.round((user.correctAnswers / user.totalAnswersAttempted) * 100) : 0;
+
+      const save = () => {
+        sound.playLevelUp();
+        onUpdateProfile({ username: name.trim() || user.username, avatar: av });
+        setIsOpen(false);
+      };
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-5xl mx-auto w-full animate-fade-in">
+          <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex items-center space-x-5">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-cyan-500 flex items-center justify-center text-4xl shadow-xl">
+                  {user.avatar || '🥷'}
+                </div>
+                <span className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-xs font-black font-mono">
+                  L{user.level}
+                </span>
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-2xl font-black text-white">{user.username}</h2>
+                  <button type="button" onClick={() => { sound.playClick(); setName(user.username); setAv(user.avatar); setIsOpen(true); }} className="px-2.5 py-1 rounded-xl bg-slate-800 text-cyan-400 text-xs font-bold border border-cyan-500/30">✏️ Edit</button>
+                </div>
+                <p className="text-xs text-purple-300 font-bold mt-1">"{title}"</p>
+                <div className="w-48 sm:w-64 mt-2">
+                  <div className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span>Level Progress</span>
+                    <span className="text-cyan-400 font-mono">{progressInLevel} / 200 XP</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-purple-500 to-cyan-400" style={{ width: `${xpPercent}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 text-center md:text-right">
+              <span className="text-xs text-slate-400 uppercase font-bold">Total Points</span>
+              <span className="text-3xl font-black text-amber-300 font-mono block">{user.points.toLocaleString()} PTS</span>
+            </div>
+          </div>
+
+          <h3 className="text-xl font-black text-white mb-4">Combat Record</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
+              <span className="text-xs text-slate-400 block">Games Played</span>
+              <span className="text-2xl font-black text-white font-mono mt-1">{user.gamesPlayed}</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
+              <span className="text-xs text-slate-400 block">Correct Answers</span>
+              <span className="text-2xl font-black text-emerald-400 font-mono mt-1">{user.correctAnswers}</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
+              <span className="text-xs text-slate-400 block">Accuracy</span>
+              <span className="text-2xl font-black text-cyan-300 font-mono mt-1">{accuracy}%</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
+              <span className="text-xs text-slate-400 block">1v1 PvP Wins</span>
+              <span className="text-2xl font-black text-purple-400 font-mono mt-1">{user.multiplayerWins || 0}</span>
+            </div>
+          </div>
+
+          {/* Category Mastery Progress */}
+          <h3 className="text-xl font-black text-white mb-4">Category Mastery</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+            {CATEGORIES.map(cat => {
+              const played = (user.categoriesPlayed || []).includes(cat.id);
+              const mastery = played ? Math.min(100, Math.round(50 + (user.correctAnswers * 3.5))) : 15;
+              return (
+                <div key={cat.id} className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center space-x-3 flex-1 mr-4">
+                    <span className="text-2xl">{cat.icon}</span>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center text-xs mb-1">
+                        <span className="font-bold text-white">{cat.name}</span>
+                        <span className="font-mono text-cyan-400">{mastery}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className={`h-full bg-gradient-to-r ${cat.gradient}`} style={{ width: `${mastery}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${played ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-500'}`}>
+                    {played ? 'Adept' : 'Initiate'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <h3 className="text-xl font-black text-white mb-4">{t.achievementsTitle || "Achievement Badges"}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {ACHIEVEMENTS.map(b => {
+              const unlocked = b.check(user);
+              return (
+                <div key={b.id} className={`p-4 rounded-2xl border transition-all ${unlocked ? 'bg-slate-900 border-amber-500/50 shadow' : 'bg-slate-950/40 border-slate-800 opacity-60'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">{b.icon}</span>
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${unlocked ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}`}>
+                      {unlocked ? 'Unlocked' : 'Locked'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black text-white">{b.title}</h4>
+                  <p className="text-xs text-slate-400 mt-1 mb-2">{b.description}</p>
+                  <span className="text-[10px] font-mono text-cyan-400">+{b.xpReward} XP</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <Modal visible={isOpen} onRequestClose={() => setIsOpen(false)}>
+            <div className="p-6 rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl">
+              <h3 className="text-xl font-black text-white mb-4 text-center">Customize Identity</h3>
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-slate-300 mb-1">Username</label>
+                <TextInput value={name} onChangeText={setName} className="w-full" />
+              </div>
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-slate-300 mb-2">Avatar</label>
+                <div className="grid grid-cols-6 gap-2">
+                  {AVATARS.map(a => (
+                    <button key={a.id} type="button" onClick={() => setAv(a.icon)} className={`h-10 rounded-xl flex items-center justify-center text-xl ${av === a.icon ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800'}`}>
+                      {a.icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                <button type="button" onClick={() => setIsOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold uppercase">Cancel</button>
+                <button type="button" onClick={save} className="flex-1 py-3 rounded-xl bg-cyan-500 text-slate-950 font-black text-xs uppercase">Save</button>
+              </div>
+            </div>
+          </Modal>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 10: RESULTS SCREEN
+    // ==========================================
+    function ResultsView({ resultsData, user, onPlayAgain, onGoHome, onViewLeaderboard, lang = "uz", t = {} }) {
+      const { userScore = 0, opponentScore = 0, totalQuestions = 5, answersLog = [], gameConfig = {}, opponent = null } = resultsData;
+      const isMultiplayer = !!opponent;
+      const correctCount = answersLog.filter(a => a.isCorrect).length;
+      const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+      const isWinner = isMultiplayer ? userScore > opponentScore : accuracy >= 80;
+      const isDraw = isMultiplayer && userScore === opponentScore;
+      const xpEarned = Math.round((userScore / 10) + (correctCount * 15));
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-4xl mx-auto w-full animate-fade-in">
+          <div className="p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl text-center mb-8">
+            <span className="text-5xl block mb-2">{isMultiplayer ? (isWinner ? '🏆' : isDraw ? '🤝' : '⚔️') : (accuracy === 100 ? '👑' : '⭐')}</span>
+            <span className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border mb-2 ${isWinner ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : isDraw ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-rose-500/20 text-rose-300 border-rose-500/40'}`}>
+              {isMultiplayer ? (isWinner ? 'Victory' : isDraw ? 'Draw' : 'Defeat') : (accuracy === 100 ? 'Flawless Victory' : 'Quiz Complete')}
+            </span>
+            <h2 className="text-3xl font-black text-white">{isMultiplayer ? (isWinner ? `You Defeated ${opponent.name}!` : isDraw ? 'Honorable Tie' : `${opponent.name} Won!`) : 'Game Over!'}</h2>
+
+            {isMultiplayer ? (
+              <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto my-6 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <div className="p-3 rounded-xl bg-slate-900 border border-purple-500/30">
+                  <span className="text-2xl block">{user.avatar}</span>
+                  <span className="text-xs font-bold text-white block">{user.username}</span>
+                  <span className="text-2xl font-black text-cyan-300 font-mono mt-1 block">{userScore}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                  <span className="text-2xl block">{opponent.avatar}</span>
+                  <span className="text-xs font-bold text-white block">{opponent.name}</span>
+                  <span className="text-2xl font-black text-amber-300 font-mono mt-1 block">{opponentScore}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="my-6 inline-block py-3 px-8 rounded-2xl bg-slate-950/80 border border-amber-500/40">
+                <span className="text-xs font-bold text-slate-400 uppercase block">Score</span>
+                <span className="text-4xl font-black text-amber-300 font-mono">{userScore} PTS</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-3 max-w-md mx-auto pt-4 border-t border-slate-800 text-center">
+              <div><span className="text-xs text-slate-400 block">Correct</span><span className="text-lg font-black text-emerald-400 font-mono">{correctCount} / {totalQuestions}</span></div>
+              <div><span className="text-xs text-slate-400 block">Accuracy</span><span className="text-lg font-black text-cyan-300 font-mono">{accuracy}%</span></div>
+              <div><span className="text-xs text-slate-400 block">XP Gained</span><span className="text-lg font-black text-purple-400 font-mono">+{xpEarned} XP</span></div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+            <TouchableOpacity onPress={() => { sound.playClick(); onPlayAgain(gameConfig); }} className="py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-black text-xs uppercase text-center shadow-lg">
+              Play Again 🔄
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { sound.playClick(); onViewLeaderboard(); }} className="py-3.5 rounded-2xl bg-slate-900 border border-cyan-500/40 text-cyan-400 font-bold text-xs uppercase text-center">
+              Leaderboard 🏆
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { sound.playClick(); onGoHome(); }} className="py-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 font-bold text-xs uppercase text-center">
+              Return Home 🏠
+            </TouchableOpacity>
+          </div>
+
+          <h3 className="text-xl font-black text-white mb-4">Question Recap</h3>
+          <div className="space-y-3">
+            {answersLog.map((item, idx) => (
+              <div key={idx} className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className={`text-xs font-bold ${item.isCorrect ? 'text-emerald-400' : 'text-rose-400'}`}>{item.isCorrect ? '✓ Correct' : '✕ Missed'} (+{item.pointsAwarded} pts)</span>
+                  <p className="text-sm font-bold text-white mt-0.5">{item.question}</p>
+                </div>
+                <span className="text-xs font-mono text-slate-400">{item.timeTaken}s</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // SCREEN 11: SETTINGS SCREEN
+    // ==========================================
+    function SettingsView({ soundEnabled, onToggleSound, onResetData, onBack, lang = 'uz', setLang, t = {} }) {
+      const [confirm, setConfirm] = useState(false);
+
+      return (
+        <div className="pb-24 pt-4 px-4 sm:px-6 max-w-3xl mx-auto w-full animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-black text-white">Settings & Audio</h2>
+            <button type="button" onClick={() => { sound.playClick(); onBack(); }} className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300">✕ Back</button>
+          </div>
+
+          <div className="space-y-4">
+            {/* LANGUAGE SELECTOR IN SETTINGS */}
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800">
+              <h3 className="text-base font-bold text-white mb-1">🌐 {t.languageSetting || 'Til / Язык / Language'}</h3>
+              <p className="text-xs text-slate-400 mb-4">Interfeys va savollar tilini tanlang</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { code: 'uz', flag: '🇺🇿', title: "O'zbek tili", sub: "Lotin yozuvida to'liq tarjima" },
+                  { code: 'ru', flag: '🇷🇺', title: 'Русский язык', sub: 'Полный русский интерфейс' },
+                  { code: 'en', flag: '🇬🇧', title: 'English', sub: 'Full English trivia' }
+                ].map(l => {
+                  const active = lang === l.code;
+                  return (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => { sound.playClick(); setLang(l.code); }}
+                      className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${active ? 'border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/20' : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-2xl">{l.flag}</span>
+                        {active && <span className="w-5 h-5 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center text-[10px] font-black">✓</span>}
+                      </div>
+                      <div>
+                        <div className={`text-sm font-bold ${active ? 'text-cyan-300' : 'text-white'}`}>{l.title}</div>
+                        <div className="text-[10px] text-slate-400">{l.sub}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white">Synthesized Audio Effects</h3>
+                <p className="text-xs text-slate-400">Play chimes, ticks, level up fanfares</p>
+              </div>
+              <button type="button" onClick={onToggleSound} className={`w-14 h-8 rounded-full p-1 transition-colors ${soundEnabled ? 'bg-cyan-500' : 'bg-slate-800'}`}>
+                <div className={`w-6 h-6 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+              </button>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white">Test Audio Synthesizer</h3>
+                <p className="text-xs text-slate-400">Preview Web Audio chimes and victory fanfare</p>
+              </div>
+              <button type="button" onClick={() => { sound.playVictory(); triggerConfetti(); }} className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold border border-cyan-500/30">
+                Play Fanfare 🎺
+              </button>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-rose-400">Reset Local Profile</h3>
+                <p className="text-xs text-slate-400">Reset career score, levels, and statistics</p>
+              </div>
+              <button type="button" onClick={() => setConfirm(true)} className="px-4 py-2 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-400 text-xs font-bold">
+                Reset
+              </button>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800 text-center text-xs text-slate-400">
+              <strong className="text-white block text-sm mb-1">⚡ QUIZ ARENA v2.5</strong>
+              Pure HTML • Tailwind CSS • React Native Architecture • 0 External Dependencies
+            </div>
+          </div>
+
+          <Modal visible={confirm} onRequestClose={() => setConfirm(false)}>
+            <div className="p-6 rounded-3xl bg-slate-900 border border-rose-500/50 text-center">
+              <span className="text-4xl block mb-2">⚠️</span>
+              <h3 className="text-xl font-black text-white mb-2">Confirm Reset</h3>
+              <p className="text-xs text-slate-400 mb-6">Wipe all local points and stats? This cannot be undone.</p>
+              <div className="flex space-x-3">
+                <button type="button" onClick={() => setConfirm(false)} className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold uppercase">Cancel</button>
+                <button type="button" onClick={() => { onResetData(); setConfirm(false); }} className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-black text-xs uppercase">Confirm</button>
+              </div>
+            </div>
+          </Modal>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // DOCK NAVBAR
+    // ==========================================
+    function NavbarView({ currentScreen, onNavigate, t = {} }) {
+      const items = [
+        { id: 'home', label: t.navHome || 'Home', icon: '🏠' },
+        { id: 'categories', label: t.navCategories || 'Categories', icon: '📚' },
+        { id: 'game_modes', label: t.navModes || 'Modes', icon: '🎮' },
+        { id: 'leaderboard', label: t.navLeaderboard || 'Ranks', icon: '🏆' },
+        { id: 'profile', label: t.navProfile || 'Profile', icon: '👤' }
+      ];
+
+      return (
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0a0e1c]/95 backdrop-blur-lg border-t border-slate-800/80 px-2 py-2 sm:py-3 shadow-2xl">
+          <div className="max-w-xl mx-auto flex items-center justify-around">
+            {items.map(item => {
+              const active = currentScreen === item.id;
+              return (
+                <TouchableOpacity key={item.id} onPress={() => { sound.playClick(); onNavigate(item.id); }} className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${active ? 'text-cyan-400 font-bold scale-105' : 'text-slate-400'}`}>
+                  <span className="text-xl sm:text-2xl">{item.icon}</span>
+                  <span className={`text-[11px] mt-0.5 ${active ? 'text-cyan-400 font-bold' : 'text-slate-400'}`}>{item.label}</span>
+                </TouchableOpacity>
+              );
+            })}
+          </div>
+        </nav>
+      );
+    }
+
+    // ==========================================
+    // MODALS: DAILY REWARD & LEVEL UP
+    // ==========================================
+    function DailyRewardModal({ visible, streak, claimedToday, onClose, onClaim, lang = "uz", t = {} }) {
+      const days = [
+        { d: 1, p: '100 PTS', x: '50 XP', i: '🪙' },
+        { d: 2, p: '150 PTS', x: '75 XP', i: '🪙' },
+        { d: 3, p: '200 PTS', x: '100 XP', i: '💎' },
+        { d: 4, p: '300 PTS', x: '150 XP', i: '💎' },
+        { d: 5, p: '400 PTS', x: '200 XP', i: '⚡' },
+        { d: 6, p: '500 PTS', x: '250 XP', i: '🔥' },
+        { d: 7, p: '1,000 PTS', x: '500 XP', i: '👑' }
+      ];
+      const curIdx = ((streak - 1) % 7);
+
+      return (
+        <Modal visible={visible} onRequestClose={onClose}>
+          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl text-center">
+            <span className="text-4xl block mb-2">🎁</span>
+            <h3 className="text-2xl font-black text-white">DAILY LOGIN REWARD</h3>
+            <p className="text-xs text-slate-400 mb-6">Log in daily to claim escalating gold points & XP!</p>
+            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
+              {days.map((item, idx) => {
+                const isCur = idx === curIdx;
+                const isPast = idx < curIdx;
+                return (
+                  <div key={item.d} className={`p-2 rounded-xl border text-center ${isCur ? 'bg-purple-950 border-cyan-400 shadow scale-105' : isPast ? 'bg-slate-800/40 border-slate-800 opacity-60' : 'bg-slate-900 border-slate-800'}`}>
+                    <span className="text-[10px] text-slate-400 block">D{item.d}</span>
+                    <span className="text-lg block my-1">{item.i}</span>
+                    <span className="text-[10px] font-black text-amber-300 block">{item.p}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex space-x-3">
+              <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold uppercase">Close</button>
+              <button type="button" disabled={claimedToday} onClick={() => { sound.playLevelUp(); onClaim(); }} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase ${claimedToday ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow'}`}>
+                {claimedToday ? 'Claimed ✓' : 'Claim Reward 🎁'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+
+    function LevelUpModal({ visible, level, onClose, lang = "uz", t = {} }) {
+      const title = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)] || 'Arena Legend';
+
+      return (
+        <Modal visible={visible} onRequestClose={onClose}>
+          <div className="p-8 rounded-3xl bg-slate-900 border-2 border-cyan-400 shadow-2xl text-center">
+            <span className="text-5xl block mb-2 animate-bounce">⭐</span>
+            <span className="text-xs font-black uppercase text-cyan-300">{t.promotionAchieved || "Promotion Achieved!"}</span>
+            <h2 className="text-3xl font-black text-white mt-1 mb-3">LEVEL UP!</h2>
+            <div className="py-2 px-6 rounded-2xl bg-slate-950 border border-purple-500 inline-block mb-3">
+              <span className="text-3xl font-black text-amber-300 font-mono">LEVEL {level}</span>
+            </div>
+            <p className="text-sm font-bold text-purple-300 mb-6">"{title}"</p>
+            <button type="button" onClick={() => { sound.playClick(); onClose(); }} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-black text-xs uppercase shadow-lg">
+              {t.claimAndContinue || "Claim & Continue ➔"}
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
+    // Mount Root React Application
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
